@@ -23,7 +23,7 @@ public class RobotPlayer {
             // You can add the missing ones or rewrite this into your own control structure.
             System.out.println("I'm a " + rc.getType() + "! Location " + rc.getLocation());
             switch (rc.getType()) {
-                case HQ:                 r = new HQ();                break;
+                case HQ:                 r = new HQ(rc);                break;
                 case MINER:              r = new Miner(rc);             break;
                 case REFINERY:           r = new Refinery();          break;
                 case VAPORATOR:          r = new Vaporator();         break;

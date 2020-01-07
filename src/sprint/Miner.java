@@ -79,12 +79,15 @@ public class Miner implements Robot {
             jobQueue.remove();
             rc.mineSoup(Direction.CENTER);
         } else {
-            rc.move(utils.intToDirection(jobQueue.peek().param1));
+            if(rc.canMove(utils.intToDirection(jobQueue.peek().param1)))
+                rc.move(utils.intToDirection(jobQueue.peek().param1));
+            else
+                jobQueue.peek().param1 = (int) (Math.random() * 8);
         }
     }
 
     private void mineDeposit() throws GameActionException {
-        if(rc.getSoupCarrying() > 0) {
+        if(rc.getSoupCarrying() == 0) {
             if (rc.getLocation().x == jobQueue.peek().param1 && rc.getLocation().y == jobQueue.peek().param2) {
                 if(rc.canMineSoup(Direction.CENTER)) rc.mineSoup(Direction.CENTER);
             } else {
@@ -92,8 +95,11 @@ public class Miner implements Robot {
             }
         } else {
             if(rc.getLocation().equals(initialLocation)) {
-                if(rc.canDepositSoup(rc.getLocation().directionTo(utils.hqPosition(rc)))) {
-                    rc.depositSoup(rc.getLocation().directionTo(utils.hqPosition(rc)), rc.getSoupCarrying());
+                for(Direction dir : Direction.allDirections()) {
+                    if(rc.canDepositSoup(dir)) {
+                        rc.depositSoup(dir, rc.getSoupCarrying());
+                        break;
+                    }
                 }
             } else {
                 utils.moveTowardsSimple(rc, initialLocation);
