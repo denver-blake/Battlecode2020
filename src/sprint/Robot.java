@@ -1,5 +1,7 @@
 package sprint;
 
+import battlecode.common.GameActionException;
+
 public interface Robot {
-    void run();
+    void run() throws GameActionException;
 }

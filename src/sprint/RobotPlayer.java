@@ -24,7 +24,7 @@ public class RobotPlayer {
             System.out.println("I'm a " + rc.getType() + "! Location " + rc.getLocation());
             switch (rc.getType()) {
                 case HQ:                 r = new HQ();                break;
-                case MINER:              r = new Miner();             break;
+                case MINER:              r = new Miner(rc);             break;
                 case REFINERY:           r = new Refinery();          break;
                 case VAPORATOR:          r = new Vaporator();         break;
                 case DESIGN_SCHOOL:      r = new DesignSchool();      break;

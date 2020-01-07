@@ -1,5 +1,9 @@
 package sprint;
 
+import battlecode.common.Direction;
+import battlecode.common.GameActionException;
+import battlecode.common.RobotController;
+
 import java.util.LinkedList;
 import java.util.Queue;
 
@@ -29,18 +33,22 @@ public class Miner implements Robot {
     }
 
     private Queue<Job> jobQueue;
+    private RobotController rc;
 
-    public Miner() {
+    public Miner(RobotController rc) {
+        this.rc = rc;
+
         jobQueue = new LinkedList<>();
         jobQueue.add(new Job(Mode.SCOUT_DEPOSIT, (int) (Math.random() * 8), 0, 0, 0));
     }
 
-    public void run() {
+    public void run() throws GameActionException {
         if(!jobQueue.isEmpty()) {
             switch (jobQueue.peek().mode) {
                 case BUILD_REFINERY:
                     break;
                 case SCOUT_DEPOSIT:
+                    scoutDeposit();
                     break;
                 case MINE_DEPOSIT:
                     break;
@@ -55,6 +63,17 @@ public class Miner implements Robot {
                 default:
                     break;
             }
+        }
+    }
+
+    private void scoutDeposit() throws GameActionException {
+        //first check if we're currently ontop of soup
+        if(rc.senseSoup(rc.getLocation()) > 0) {
+            jobQueue.add(new Job(Mode.MINE_DEPOSIT, rc.getLocation().x, rc.getLocation().y, 0, 0));
+            jobQueue.remove();
+            rc.mineSoup(Direction.CENTER);
+        } else {
+            rc.move(Utils.intToDirection(jobQueue.peek().param1));
         }
     }
 }
