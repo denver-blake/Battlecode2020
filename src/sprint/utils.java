@@ -2,7 +2,7 @@ package sprint;
 
 import battlecode.common.Direction;
 
-public class Utils {
+public class utils {
 
     public static Direction intToDirection(int x) {
         switch(x) {

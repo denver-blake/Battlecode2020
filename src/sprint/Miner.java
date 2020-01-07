@@ -73,7 +73,7 @@ public class Miner implements Robot {
             jobQueue.remove();
             rc.mineSoup(Direction.CENTER);
         } else {
-            rc.move(Utils.intToDirection(jobQueue.peek().param1));
+            rc.move(utils.intToDirection(jobQueue.peek().param1));
         }
     }
 }
