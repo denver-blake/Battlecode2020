@@ -1,9 +1,6 @@
 package sprint;
 
-import battlecode.common.Direction;
-import battlecode.common.GameActionException;
-import battlecode.common.MapLocation;
-import battlecode.common.RobotController;
+import battlecode.common.*;
 
 import java.util.LinkedList;
 import java.util.Queue;
@@ -31,20 +28,30 @@ public class Miner implements Robot {
             this.param3 = param3;
             this.param4 = param4;
         }
+
+        public Job(Mode mode) {
+            this(mode, 0, 0, 0, 0);
+        }
     }
 
     private Queue<Job> jobQueue;
     private RobotController rc;
 
     private MapLocation initialLocation;
+    private MapLocation hqLocation;
 
-    public Miner(RobotController rc) {
+    public Miner(RobotController rc) throws GameActionException {
         this.rc = rc;
 
         jobQueue = new LinkedList<>();
         jobQueue.add(new Job(Mode.SCOUT_DEPOSIT, (int) (Math.random() * 8), 0, 0, 0));
 
         initialLocation = rc.getLocation();
+        for(Direction dir : Direction.allDirections()) {
+            if(rc.senseRobotAtLocation(rc.getLocation().add(dir)).type == RobotType.HQ) {
+                hqLocation = rc.getLocation().add(dir);
+            }
+        }
     }
 
     public void run() throws GameActionException {
@@ -59,8 +66,10 @@ public class Miner implements Robot {
                     mineDeposit();
                     break;
                 case BUILD_SCHOOL:
+                    buildSchool();
                     break;
                 case BUILD_CENTER:
+                    buildCenter();
                     break;
                 case BUILD_DEFENSIVE_GUN:
                     break;
@@ -72,10 +81,55 @@ public class Miner implements Robot {
         }
     }
 
+    private void buildCenter() throws GameActionException {
+        if(jobQueue.peek().param3 == 1) {
+            MapLocation centerLocation = new MapLocation(jobQueue.peek().param1, jobQueue.peek().param2);
+
+            if(rc.getLocation().distanceSquaredTo(centerLocation) <= 2
+                && rc.canBuildRobot(RobotType.FULFILLMENT_CENTER, rc.getLocation().directionTo(centerLocation))) {
+                rc.buildRobot(RobotType.FULFILLMENT_CENTER, rc.getLocation().directionTo(centerLocation));
+                jobQueue.remove();
+                return;
+            }
+        }
+
+        if(rc.getLocation().distanceSquaredTo(hqLocation) > 2) {
+            utils.moveTowardsSimple(rc, hqLocation);
+        } else {
+            MapLocation centerLocation = utils.findHighGround(rc);
+            jobQueue.peek().param1 = centerLocation.x;
+            jobQueue.peek().param2 = centerLocation.y;
+            jobQueue.peek().param3 = 1;
+        }
+    }
+
+    private void buildSchool() throws GameActionException {
+        if(jobQueue.peek().param3 == 1) {
+            MapLocation schoolLocation = new MapLocation(jobQueue.peek().param1, jobQueue.peek().param2);
+
+            if(rc.getLocation().distanceSquaredTo(schoolLocation) <= 2
+                    && rc.canBuildRobot(RobotType.DESIGN_SCHOOL, rc.getLocation().directionTo(schoolLocation))) {
+                rc.buildRobot(RobotType.DESIGN_SCHOOL, rc.getLocation().directionTo(schoolLocation));
+                jobQueue.remove();
+                return;
+            }
+        }
+
+        if(rc.getLocation().distanceSquaredTo(hqLocation) > 2) {
+            utils.moveTowardsSimple(rc, hqLocation);
+        } else {
+            MapLocation schoolLocation = utils.findHighGround(rc);
+            jobQueue.peek().param1 = schoolLocation.x;
+            jobQueue.peek().param2 = schoolLocation.y;
+            jobQueue.peek().param3 = 1;
+        }
+    }
+
     private void scoutDeposit() throws GameActionException {
-        //first check if we're currently ontop of soup
-        if(rc.senseSoup(rc.getLocation()) > 0) {
-            jobQueue.add(new Job(Mode.MINE_DEPOSIT, rc.getLocation().x, rc.getLocation().y, 0, 0));
+        //first check if we're currently near any soup
+        MapLocation nearbySoup = utils.findNearbySoup(rc);
+        if(nearbySoup != null) {
+            jobQueue.add(new Job(Mode.MINE_DEPOSIT, nearbySoup.x, nearbySoup.y, 0, 0));
             jobQueue.remove();
             rc.mineSoup(Direction.CENTER);
         } else {
@@ -89,7 +143,19 @@ public class Miner implements Robot {
     private void mineDeposit() throws GameActionException {
         if(rc.getSoupCarrying() == 0) {
             if (rc.getLocation().x == jobQueue.peek().param1 && rc.getLocation().y == jobQueue.peek().param2) {
-                if(rc.canMineSoup(Direction.CENTER)) rc.mineSoup(Direction.CENTER);
+                if(rc.canMineSoup(Direction.CENTER)) {
+                    rc.mineSoup(Direction.CENTER);
+                } else {
+                    MapLocation nextSoup = utils.findNearbySoup(rc);
+
+                    if(nextSoup != null) {
+                        jobQueue.peek().param1 = nextSoup.x;
+                        jobQueue.peek().param2 = nextSoup.y;
+                    } else {
+                        jobQueue.add(new Job(Mode.SCOUT_DEPOSIT, (int) (Math.random() * 8), 0, 0, 0));
+                        jobQueue.remove();
+                    }
+                }
             } else {
                 utils.moveTowardsSimple(rc, new MapLocation(jobQueue.peek().param1, jobQueue.peek().param2));
             }
