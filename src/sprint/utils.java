@@ -7,6 +7,8 @@ import battlecode.common.Direction;
 
 public class utils {
 
+    public static final int BLOCKCHAIN_TAG = -471247;
+
     public static Direction intToDirection(int x) {
         switch(x) {
             case 0: return Direction.NORTH;
@@ -128,5 +130,18 @@ public class utils {
         }
         System.out.println(line);
         return line;
+    }
+
+    public static MapLocation hqPosition(RobotController rc) throws GameActionException {
+        Transaction[] block = rc.getBlock(0);
+
+        for(int i=0; i<block.length; i++) {
+            if(block[i].getMessage()[0] == utils.BLOCKCHAIN_TAG) {
+                return new MapLocation(block[i].getMessage()[1], block[i].getMessage()[2]);
+            }
+        }
+
+        //hq failed to send its coords
+        return new MapLocation(0, 0);
     }
 }

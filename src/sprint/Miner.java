@@ -2,6 +2,7 @@ package sprint;
 
 import battlecode.common.Direction;
 import battlecode.common.GameActionException;
+import battlecode.common.MapLocation;
 import battlecode.common.RobotController;
 
 import java.util.LinkedList;
@@ -35,11 +36,15 @@ public class Miner implements Robot {
     private Queue<Job> jobQueue;
     private RobotController rc;
 
+    private MapLocation initialLocation;
+
     public Miner(RobotController rc) {
         this.rc = rc;
 
         jobQueue = new LinkedList<>();
         jobQueue.add(new Job(Mode.SCOUT_DEPOSIT, (int) (Math.random() * 8), 0, 0, 0));
+
+        initialLocation = rc.getLocation();
     }
 
     public void run() throws GameActionException {
@@ -51,6 +56,7 @@ public class Miner implements Robot {
                     scoutDeposit();
                     break;
                 case MINE_DEPOSIT:
+                    mineDeposit();
                     break;
                 case BUILD_SCHOOL:
                     break;
@@ -74,6 +80,24 @@ public class Miner implements Robot {
             rc.mineSoup(Direction.CENTER);
         } else {
             rc.move(utils.intToDirection(jobQueue.peek().param1));
+        }
+    }
+
+    private void mineDeposit() throws GameActionException {
+        if(rc.getSoupCarrying() > 0) {
+            if (rc.getLocation().x == jobQueue.peek().param1 && rc.getLocation().y == jobQueue.peek().param2) {
+                if(rc.canMineSoup(Direction.CENTER)) rc.mineSoup(Direction.CENTER);
+            } else {
+                utils.moveTowardsSimple(rc, new MapLocation(jobQueue.peek().param1, jobQueue.peek().param2));
+            }
+        } else {
+            if(rc.getLocation().equals(initialLocation)) {
+                if(rc.canDepositSoup(rc.getLocation().directionTo(utils.hqPosition(rc)))) {
+                    rc.depositSoup(rc.getLocation().directionTo(utils.hqPosition(rc)), rc.getSoupCarrying());
+                }
+            } else {
+                utils.moveTowardsSimple(rc, initialLocation);
+            }
         }
     }
 }
