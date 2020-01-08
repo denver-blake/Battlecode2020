@@ -89,6 +89,52 @@ public class utils {
         return highGround;
     }
 
+    public static MapLocation searchForRefinery(RobotController rc) throws GameActionException {
+        List<MapLocation> queue = new LinkedList<>();
+        queue.add(rc.getLocation());
+
+        while(queue.size() > 0) {
+            MapLocation current = queue.remove(0);
+
+            for(Direction dir : Direction.allDirections()) {
+                MapLocation newLocation = current.add(dir);
+
+                if(!rc.canSenseLocation(newLocation)) continue;
+
+                if(rc.senseRobotAtLocation(newLocation).type == RobotType.REFINERY) {
+                    return newLocation;
+                }
+
+                queue.add(newLocation);
+            }
+        }
+
+        return null;
+    }
+
+    public static MapLocation newRefineryLocation(RobotController rc) throws GameActionException {
+        List<MapLocation> queue = new LinkedList<>();
+        queue.add(rc.getLocation());
+
+        while(queue.size() > 0) {
+            MapLocation current = queue.remove(0);
+
+            for(Direction dir : Direction.allDirections()) {
+                MapLocation newLocation = current.add(dir);
+
+                if(!rc.canSenseLocation(newLocation)) continue;
+
+                if(rc.senseSoup(newLocation) == 0 && !rc.senseFlooding(newLocation)) {
+                    return newLocation;
+                }
+
+                queue.add(newLocation);
+            }
+        }
+
+        return null;
+    }
+
     public static class Bug2Pathfinder {
         private RobotController rc;
         private MapLocation destination;

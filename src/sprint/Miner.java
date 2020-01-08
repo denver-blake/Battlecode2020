@@ -34,11 +34,13 @@ public class Miner implements Robot {
         }
     }
 
-    private Queue<Job> jobQueue;
+    private LinkedList<Job> jobQueue;
     private RobotController rc;
 
     private MapLocation initialLocation;
     private MapLocation hqLocation;
+
+    private MapLocation refineryLocation;
 
     public Miner(RobotController rc) throws GameActionException {
         this.rc = rc;
@@ -58,7 +60,7 @@ public class Miner implements Robot {
         if(!jobQueue.isEmpty()) {
             switch (jobQueue.peek().mode) {
                 case BUILD_REFINERY:
-                    break;
+                    buildRefinery();
                 case SCOUT_DEPOSIT:
                     scoutDeposit();
                     break;
@@ -79,6 +81,19 @@ public class Miner implements Robot {
                     break;
             }
         }
+    }
+
+    private void buildRefinery() throws GameActionException {
+        MapLocation refineryLocation = new MapLocation(jobQueue.peek().param1, jobQueue.peek().param2);
+
+        if(rc.getLocation().distanceSquaredTo(refineryLocation) <= 2
+            && rc.canBuildRobot(RobotType.REFINERY, rc.getLocation().directionTo(refineryLocation))) {
+            rc.buildRobot(RobotType.REFINERY, rc.getLocation().directionTo(refineryLocation));
+            jobQueue.remove();
+            return;
+        }
+
+        utils.moveTowardsSimple(rc, refineryLocation);
     }
 
     private void buildCenter() throws GameActionException {
@@ -143,6 +158,22 @@ public class Miner implements Robot {
     private void mineDeposit() throws GameActionException {
         if(rc.getSoupCarrying() == 0) {
             if (rc.getLocation().x == jobQueue.peek().param1 && rc.getLocation().y == jobQueue.peek().param2) {
+
+                if(refineryLocation == null) {
+                    MapLocation existingRefinery = utils.searchForRefinery(rc);
+                    if(existingRefinery != null) {
+                        refineryLocation = existingRefinery;
+                    } else {
+                        //need to make a new refinery
+                        MapLocation newRefineryLocation = utils.newRefineryLocation(rc);
+
+                        if(newRefineryLocation != null) {
+                            refineryLocation = newRefineryLocation;
+                            jobQueue.add(0, new Job(Mode.BUILD_REFINERY, newRefineryLocation.x, newRefineryLocation.y, 0, 0));
+                        }
+                    }
+                }
+
                 if(rc.canMineSoup(Direction.CENTER)) {
                     rc.mineSoup(Direction.CENTER);
                 } else {
