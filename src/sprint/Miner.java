@@ -163,7 +163,7 @@ public class Miner implements Robot {
                     MapLocation existingRefinery = utils.searchForRefinery(rc);
                     if(existingRefinery != null) {
                         refineryLocation = existingRefinery;
-                    } else {
+                    } else if(rc.getTeamSoup() > 200) {
                         //need to make a new refinery
                         MapLocation newRefineryLocation = utils.newRefineryLocation(rc);
 
