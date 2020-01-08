@@ -50,7 +50,7 @@ public class Miner implements Robot {
 
         initialLocation = rc.getLocation();
         for(Direction dir : Direction.allDirections()) {
-            if(rc.senseRobotAtLocation(rc.getLocation().add(dir)).type == RobotType.HQ) {
+            if(rc.senseRobotAtLocation(rc.getLocation().add(dir)) != null) {
                 hqLocation = rc.getLocation().add(dir);
             }
         }
@@ -61,6 +61,7 @@ public class Miner implements Robot {
             switch (jobQueue.peek().mode) {
                 case BUILD_REFINERY:
                     buildRefinery();
+                    break;
                 case SCOUT_DEPOSIT:
                     scoutDeposit();
                     break;
@@ -146,7 +147,6 @@ public class Miner implements Robot {
         if(nearbySoup != null) {
             jobQueue.add(new Job(Mode.MINE_DEPOSIT, nearbySoup.x, nearbySoup.y, 0, 0));
             jobQueue.remove();
-            rc.mineSoup(Direction.CENTER);
         } else {
             if(rc.canMove(utils.intToDirection(jobQueue.peek().param1)))
                 rc.move(utils.intToDirection(jobQueue.peek().param1));
@@ -160,19 +160,23 @@ public class Miner implements Robot {
             if (rc.getLocation().x == jobQueue.peek().param1 && rc.getLocation().y == jobQueue.peek().param2) {
 
                 if(refineryLocation == null) {
+                    System.out.println("no refinery location");
                     MapLocation existingRefinery = utils.searchForRefinery(rc);
+
                     if(existingRefinery != null) {
                         refineryLocation = existingRefinery;
                     } else if(rc.getTeamSoup() > 200) {
                         //need to make a new refinery
+                        System.out.println("i want to make a new refinery");
                         MapLocation newRefineryLocation = utils.newRefineryLocation(rc);
 
                         if(newRefineryLocation != null) {
                             refineryLocation = newRefineryLocation;
-                            jobQueue.add(0, new Job(Mode.BUILD_REFINERY, newRefineryLocation.x, newRefineryLocation.y, 0, 0));
+                            jobQueue.addFirst(new Job(Mode.BUILD_REFINERY, newRefineryLocation.x, newRefineryLocation.y, 0, 0));
                         }
                     }
                 }
+                System.out.println("past the refinery stage");
 
                 if(rc.canMineSoup(Direction.CENTER)) {
                     rc.mineSoup(Direction.CENTER);
