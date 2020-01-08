@@ -2,15 +2,17 @@ package sprint;
 
 import battlecode.common.*;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Random;
 
 public class Landscaper implements Robot {
 
     enum Mode {
-        SAVE_WORKER, //(param1, param2) = worker location
-        DEFEND_FROM_FLOOD, //  location to protect
         FORTIFY_HQ,
+        DEFEND_FROM_FLOOD, //  location to protect
+        SAVE_WORKER, //(param1, param2) = worker location
         ATTACK, //(param1, param2) = enemy location
 
     }
@@ -35,32 +37,31 @@ public class Landscaper implements Robot {
     public Landscaper(RobotController rc) throws GameActionException {
         this.rc = rc;
         HQ = utils.hqPosition(rc);
+        jobQueue = new LinkedList<>();
+        jobQueue.add(new Job(Mode.FORTIFY_HQ,0,0));
+        pathfinder = null;
 
     }
 
     public void run() throws GameActionException {
 
-//        if(!jobQueue.isEmpty()) {
-//            switch (jobQueue.peek().mode) {
-//                case SAVE_WORKER:
-//                    break;
-//                case DEFEND_FROM_FLOOD:
-//
-//                    break;
-//                case FORTIFY_HQ:
-//
-//                    break;
-//                case ATTACK:
-//                    break;
-//                default:
-//                    break;
-//            }
-//        }
-        if (pathfinder == null) {
-            fortifyHQInit();
-        } else {
-            fortifyHQ();
+        if(!jobQueue.isEmpty()) {
+            switch (jobQueue.peek().mode) {
+                case FORTIFY_HQ:
+                    fortifyHQ();
+                    System.out.println("fortify");
+                    break;
+                case DEFEND_FROM_FLOOD:
+                    break;
+                case SAVE_WORKER:
+                    break;
+                case ATTACK:
+                    break;
+                default:
+                    break;
+            }
         }
+
         System.out.println("BYTECODE: " + Clock.getBytecodeNum());
 
     }
@@ -69,6 +70,9 @@ public class Landscaper implements Robot {
         pathfinder = new utils.Bug2Pathfinder(rc,HQ);
     }
     public void fortifyHQ() throws GameActionException {
+        if (pathfinder == null) {
+            fortifyHQInit();
+        }
         if (!rc.isReady()) return;
         if (!atFortifyHQLocation()) {
             System.out.println("MOVING");
