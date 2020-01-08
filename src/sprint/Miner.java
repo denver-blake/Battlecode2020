@@ -38,18 +38,21 @@ public class Miner implements Robot {
     private RobotController rc;
 
     private MapLocation initialLocation;
-
     private MapLocation hqLocation;
 
     private MapLocation refineryLocation;
-
+    private int turn;
+    private int roundBuilt;
     public Miner(RobotController rc) throws GameActionException {
-
         this.rc = rc;
-
+        turn = 0;
+        roundBuilt = rc.getRoundNum();
         jobQueue = new LinkedList<>();
-        jobQueue.add(new Job(Mode.SCOUT_DEPOSIT, (int) (Math.random() * 8), 0, 0, 0));
-
+        if (rc.getRoundNum() > 200) {
+            jobQueue.add(new Job(Mode.BUILD_SCHOOL,rc.getLocation().x+10,rc.getLocation().y,0,0));
+        } else {
+            jobQueue.add(new Job(Mode.SCOUT_DEPOSIT, (int) (Math.random() * 8), 0, 0, 0));
+        }
         initialLocation = rc.getLocation();
         for(Direction dir : Direction.allDirections()) {
             if(rc.senseRobotAtLocation(rc.getLocation().add(dir)) != null) {
@@ -59,41 +62,52 @@ public class Miner implements Robot {
     }
 
     public void run() throws GameActionException {
-
-        if(!jobQueue.isEmpty()) {
-            switch (jobQueue.peek().mode) {
-                case BUILD_REFINERY:
-                    buildRefinery();
-                    break;
-                case SCOUT_DEPOSIT:
-                    scoutDeposit();
-                    break;
-                case MINE_DEPOSIT:
-                    mineDeposit();
-                    break;
-                case BUILD_SCHOOL:
-                    buildSchool();
-                    break;
-                case BUILD_CENTER:
-                    buildCenter();
-                    break;
-                case BUILD_DEFENSIVE_GUN:
-                    break;
-                case BUILD_VAPORATOR:
-                    break;
-                default:
-                    break;
+        turn++;
+        if (roundBuilt > 200) {
+            if (turn < 25 && rc.isReady()) {
+                rc.move(Direction.NORTH);
+            } else if (rc.canBuildRobot(RobotType.DESIGN_SCHOOL, Direction.SOUTH)) {
+                rc.buildRobot(RobotType.DESIGN_SCHOOL, Direction.SOUTH);
             }
-
+        } else  {
+            if (turn < 25 && rc.isReady()) {
+                rc.move(Direction.EAST);
+            } else if (rc.canBuildRobot(RobotType.REFINERY, Direction.SOUTH)) {
+                rc.buildRobot(RobotType.REFINERY, Direction.SOUTH);
+            }
         }
-
+//        if(!jobQueue.isEmpty()) {
+//            switch (jobQueue.peek().mode) {
+//                case BUILD_REFINERY:
+//                    buildRefinery();
+//                    break;
+//                case SCOUT_DEPOSIT:
+//                    scoutDeposit();
+//                    break;
+//                case MINE_DEPOSIT:
+//                    mineDeposit();
+//                    break;
+//                case BUILD_SCHOOL:
+//                    buildSchool();
+//                    break;
+//                case BUILD_CENTER:
+//                    buildCenter();
+//                    break;
+//                case BUILD_DEFENSIVE_GUN:
+//                    break;
+//                case BUILD_VAPORATOR:
+//                    break;
+//                default:
+//                    break;
+//            }
+//        }
     }
 
     private void buildRefinery() throws GameActionException {
         MapLocation refineryLocation = new MapLocation(jobQueue.peek().param1, jobQueue.peek().param2);
 
         if(rc.getLocation().distanceSquaredTo(refineryLocation) <= 2
-            && rc.canBuildRobot(RobotType.REFINERY, rc.getLocation().directionTo(refineryLocation))) {
+                && rc.canBuildRobot(RobotType.REFINERY, rc.getLocation().directionTo(refineryLocation))) {
             rc.buildRobot(RobotType.REFINERY, rc.getLocation().directionTo(refineryLocation));
             jobQueue.remove();
             return;
@@ -107,7 +121,7 @@ public class Miner implements Robot {
             MapLocation centerLocation = new MapLocation(jobQueue.peek().param1, jobQueue.peek().param2);
 
             if(rc.getLocation().distanceSquaredTo(centerLocation) <= 2
-                && rc.canBuildRobot(RobotType.FULFILLMENT_CENTER, rc.getLocation().directionTo(centerLocation))) {
+                    && rc.canBuildRobot(RobotType.FULFILLMENT_CENTER, rc.getLocation().directionTo(centerLocation))) {
                 rc.buildRobot(RobotType.FULFILLMENT_CENTER, rc.getLocation().directionTo(centerLocation));
                 jobQueue.remove();
                 return;

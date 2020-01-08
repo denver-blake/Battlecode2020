@@ -8,11 +8,16 @@ import battlecode.common.RobotType;
 public class HQ implements Robot {
 
     private RobotController rc;
+    private boolean builder = false;
 
     public void run() throws GameActionException {
-        if(rc.getRoundNum() == 2) {
+        if(rc.getRoundNum() == 100) {
             rc.buildRobot(RobotType.MINER, Direction.NORTH);
         }
+        if(rc.getRoundNum() == 200) {
+            rc.buildRobot(RobotType.MINER, Direction.NORTH);
+        }
+
     }
 
     public HQ (RobotController rc) throws GameActionException {

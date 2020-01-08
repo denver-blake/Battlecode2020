@@ -30,7 +30,7 @@ public class RobotPlayer {
                 case DESIGN_SCHOOL:      r = new DesignSchool(rc);      break;
                 case FULFILLMENT_CENTER: r = new FulfillmentCenter(); break;
                 case LANDSCAPER:         r = new Landscaper(rc);        break;
-                case DELIVERY_DRONE:     r = new Drone();     break;
+                case DELIVERY_DRONE:     r = new Drone();               break;
                 case NET_GUN:            r = new NetGun();            break;
             }
 

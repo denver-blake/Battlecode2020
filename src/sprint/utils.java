@@ -235,4 +235,12 @@ public class utils {
         return new MapLocation(0, 0);
     }
 
+    public static boolean onTheMap(RobotController rc,MapLocation location) {
+        return location.x > -1 && location.y > -1 && location.x < rc.getMapWidth() && location.y < rc.getMapHeight();
+    }
+
+    public static int getWaterLevel(int round) {
+        return (int) (Math.pow(Math.E,0.0028* round - 1.38 * Math.sin(0.00157 * round - 1.73) + 1.38 * Math.sin(-1.73)) - 1);
+    }
+
 }
