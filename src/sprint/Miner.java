@@ -28,57 +28,128 @@ public class Miner implements Robot {
             this.param3 = param3;
             this.param4 = param4;
         }
+
+        public Job(Mode mode) {
+            this(mode, 0, 0, 0, 0);
+        }
     }
 
-    private Queue<Job> jobQueue;
+    private LinkedList<Job> jobQueue;
     private RobotController rc;
 
     private MapLocation initialLocation;
-    private int turn;
-    public Miner(RobotController rc) {
+
+    private MapLocation hqLocation;
+
+    private MapLocation refineryLocation;
+
+    public Miner(RobotController rc) throws GameActionException {
+
         this.rc = rc;
-        turn = 0;
+
         jobQueue = new LinkedList<>();
         jobQueue.add(new Job(Mode.SCOUT_DEPOSIT, (int) (Math.random() * 8), 0, 0, 0));
 
         initialLocation = rc.getLocation();
+        for(Direction dir : Direction.allDirections()) {
+            if(rc.senseRobotAtLocation(rc.getLocation().add(dir)).type == RobotType.HQ) {
+                hqLocation = rc.getLocation().add(dir);
+            }
+        }
     }
 
     public void run() throws GameActionException {
-        turn++;
-        if (turn < 20 && rc.isReady()) {
-            rc.move(Direction.NORTH);
-        } else if (rc.canBuildRobot(RobotType.DESIGN_SCHOOL,Direction.SOUTH)){
-            rc.buildRobot(RobotType.DESIGN_SCHOOL,Direction.SOUTH);
+
+        if(!jobQueue.isEmpty()) {
+            switch (jobQueue.peek().mode) {
+                case BUILD_REFINERY:
+                    buildRefinery();
+                case SCOUT_DEPOSIT:
+                    scoutDeposit();
+                    break;
+                case MINE_DEPOSIT:
+                    mineDeposit();
+                    break;
+                case BUILD_SCHOOL:
+                    buildSchool();
+                    break;
+                case BUILD_CENTER:
+                    buildCenter();
+                    break;
+                case BUILD_DEFENSIVE_GUN:
+                    break;
+                case BUILD_VAPORATOR:
+                    break;
+                default:
+                    break;
+            }
+
         }
-//        if(!jobQueue.isEmpty()) {
-//            switch (jobQueue.peek().mode) {
-//                case BUILD_REFINERY:
-//                    break;
-//                case SCOUT_DEPOSIT:
-//                    scoutDeposit();
-//                    break;
-//                case MINE_DEPOSIT:
-//                    mineDeposit();
-//                    break;
-//                case BUILD_SCHOOL:
-//                    break;
-//                case BUILD_CENTER:
-//                    break;
-//                case BUILD_DEFENSIVE_GUN:
-//                    break;
-//                case BUILD_VAPORATOR:
-//                    break;
-//                default:
-//                    break;
-//            }
-//        }
+
+    }
+
+    private void buildRefinery() throws GameActionException {
+        MapLocation refineryLocation = new MapLocation(jobQueue.peek().param1, jobQueue.peek().param2);
+
+        if(rc.getLocation().distanceSquaredTo(refineryLocation) <= 2
+            && rc.canBuildRobot(RobotType.REFINERY, rc.getLocation().directionTo(refineryLocation))) {
+            rc.buildRobot(RobotType.REFINERY, rc.getLocation().directionTo(refineryLocation));
+            jobQueue.remove();
+            return;
+        }
+
+        utils.moveTowardsSimple(rc, refineryLocation);
+    }
+
+    private void buildCenter() throws GameActionException {
+        if(jobQueue.peek().param3 == 1) {
+            MapLocation centerLocation = new MapLocation(jobQueue.peek().param1, jobQueue.peek().param2);
+
+            if(rc.getLocation().distanceSquaredTo(centerLocation) <= 2
+                && rc.canBuildRobot(RobotType.FULFILLMENT_CENTER, rc.getLocation().directionTo(centerLocation))) {
+                rc.buildRobot(RobotType.FULFILLMENT_CENTER, rc.getLocation().directionTo(centerLocation));
+                jobQueue.remove();
+                return;
+            }
+        }
+
+        if(rc.getLocation().distanceSquaredTo(hqLocation) > 2) {
+            utils.moveTowardsSimple(rc, hqLocation);
+        } else {
+            MapLocation centerLocation = utils.findHighGround(rc);
+            jobQueue.peek().param1 = centerLocation.x;
+            jobQueue.peek().param2 = centerLocation.y;
+            jobQueue.peek().param3 = 1;
+        }
+    }
+
+    private void buildSchool() throws GameActionException {
+        if(jobQueue.peek().param3 == 1) {
+            MapLocation schoolLocation = new MapLocation(jobQueue.peek().param1, jobQueue.peek().param2);
+
+            if(rc.getLocation().distanceSquaredTo(schoolLocation) <= 2
+                    && rc.canBuildRobot(RobotType.DESIGN_SCHOOL, rc.getLocation().directionTo(schoolLocation))) {
+                rc.buildRobot(RobotType.DESIGN_SCHOOL, rc.getLocation().directionTo(schoolLocation));
+                jobQueue.remove();
+                return;
+            }
+        }
+
+        if(rc.getLocation().distanceSquaredTo(hqLocation) > 2) {
+            utils.moveTowardsSimple(rc, hqLocation);
+        } else {
+            MapLocation schoolLocation = utils.findHighGround(rc);
+            jobQueue.peek().param1 = schoolLocation.x;
+            jobQueue.peek().param2 = schoolLocation.y;
+            jobQueue.peek().param3 = 1;
+        }
     }
 
     private void scoutDeposit() throws GameActionException {
-        //first check if we're currently ontop of soup
-        if(rc.senseSoup(rc.getLocation()) > 0) {
-            jobQueue.add(new Job(Mode.MINE_DEPOSIT, rc.getLocation().x, rc.getLocation().y, 0, 0));
+        //first check if we're currently near any soup
+        MapLocation nearbySoup = utils.findNearbySoup(rc);
+        if(nearbySoup != null) {
+            jobQueue.add(new Job(Mode.MINE_DEPOSIT, nearbySoup.x, nearbySoup.y, 0, 0));
             jobQueue.remove();
             rc.mineSoup(Direction.CENTER);
         } else {
@@ -92,20 +163,61 @@ public class Miner implements Robot {
     private void mineDeposit() throws GameActionException {
         if(rc.getSoupCarrying() == 0) {
             if (rc.getLocation().x == jobQueue.peek().param1 && rc.getLocation().y == jobQueue.peek().param2) {
-                if(rc.canMineSoup(Direction.CENTER)) rc.mineSoup(Direction.CENTER);
+
+                if(refineryLocation == null) {
+                    MapLocation existingRefinery = utils.searchForRefinery(rc);
+                    if(existingRefinery != null) {
+                        refineryLocation = existingRefinery;
+                    } else if(rc.getTeamSoup() > 200) {
+                        //need to make a new refinery
+                        MapLocation newRefineryLocation = utils.newRefineryLocation(rc);
+
+                        if(newRefineryLocation != null) {
+                            refineryLocation = newRefineryLocation;
+                            jobQueue.add(0, new Job(Mode.BUILD_REFINERY, newRefineryLocation.x, newRefineryLocation.y, 0, 0));
+                        }
+                    }
+                }
+
+                if(rc.canMineSoup(Direction.CENTER)) {
+                    rc.mineSoup(Direction.CENTER);
+                } else {
+                    MapLocation nextSoup = utils.findNearbySoup(rc);
+
+                    if(nextSoup != null) {
+                        jobQueue.peek().param1 = nextSoup.x;
+                        jobQueue.peek().param2 = nextSoup.y;
+                    } else {
+                        jobQueue.add(new Job(Mode.SCOUT_DEPOSIT, (int) (Math.random() * 8), 0, 0, 0));
+                        jobQueue.remove();
+                    }
+                }
             } else {
                 utils.moveTowardsSimple(rc, new MapLocation(jobQueue.peek().param1, jobQueue.peek().param2));
             }
         } else {
-            if(rc.getLocation().equals(initialLocation)) {
-                for(Direction dir : Direction.allDirections()) {
-                    if(rc.canDepositSoup(dir)) {
-                        rc.depositSoup(dir, rc.getSoupCarrying());
-                        break;
+            if(refineryLocation == null) {
+                if (rc.getLocation().equals(initialLocation)) {
+                    for (Direction dir : Direction.allDirections()) {
+                        if (rc.canDepositSoup(dir)) {
+                            rc.depositSoup(dir, rc.getSoupCarrying());
+                            break;
+                        }
                     }
+                } else {
+                    utils.moveTowardsSimple(rc, initialLocation);
                 }
             } else {
-                utils.moveTowardsSimple(rc, initialLocation);
+                if(rc.getLocation().distanceSquaredTo(refineryLocation) <= 2) {
+                    for (Direction dir : Direction.allDirections()) {
+                        if (rc.canDepositSoup(dir)) {
+                            rc.depositSoup(dir, rc.getSoupCarrying());
+                            break;
+                        }
+                    }
+                } else {
+                    utils.moveTowardsSimple(rc, refineryLocation);
+                }
             }
         }
     }
