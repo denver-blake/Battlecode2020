@@ -14,6 +14,7 @@ public class Landscaper implements Robot {
         DEFEND_FROM_FLOOD, //  location to protect
         SAVE_WORKER, //(param1, param2) = worker location
         ATTACK, //(param1, param2) = enemy location
+        PROTECT_DEPOSIT // (param1,param2) = deposit location
 
     }
     private class Job {
@@ -56,6 +57,8 @@ public class Landscaper implements Robot {
                 case SAVE_WORKER:
                     break;
                 case ATTACK:
+                    break;
+                case PROTECT_DEPOSIT:
                     break;
                 default:
                     break;
@@ -100,10 +103,13 @@ public class Landscaper implements Robot {
     }
 
     public void attack() {
-        for (RobotInfo robot : rc.senseNearbyRobots(-1,rc.getTeam().opponent())) {
+        for (RobotInfo robotInfo : rc.senseNearbyRobots(-1,rc.getTeam().opponent())) {
+
 
         }
     }
+
+
 
 
 }
