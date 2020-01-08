@@ -90,22 +90,18 @@ public class utils {
     }
 
     public static MapLocation searchForRefinery(RobotController rc) throws GameActionException {
-        List<MapLocation> queue = new LinkedList<>();
-        queue.add(rc.getLocation());
+        int robotX = rc.getLocation().x;
+        int robotY = rc.getLocation().y;
 
-        while(queue.size() > 0) {
-            MapLocation current = queue.remove(0);
+        for(int i=robotX-6;i<=robotX+6;i++) {
+            for(int j=robotY-6;j<=robotY+6;j++) {
+                MapLocation loc = new MapLocation(i, j);
 
-            for(Direction dir : Direction.allDirections()) {
-                MapLocation newLocation = current.add(dir);
-
-                if(!rc.canSenseLocation(newLocation)) continue;
-
-                if(rc.senseRobotAtLocation(newLocation).type == RobotType.REFINERY) {
-                    return newLocation;
+                if(rc.canSenseLocation(loc) && rc.onTheMap(loc) &&
+                        rc.senseRobotAtLocation(loc) != null &&
+                        rc.senseRobotAtLocation(loc).type == RobotType.REFINERY) {
+                    return loc;
                 }
-
-                queue.add(newLocation);
             }
         }
 
@@ -113,26 +109,25 @@ public class utils {
     }
 
     public static MapLocation newRefineryLocation(RobotController rc) throws GameActionException {
-        List<MapLocation> queue = new LinkedList<>();
-        queue.add(rc.getLocation());
+        int robotX = rc.getLocation().x;
+        int robotY = rc.getLocation().y;
 
-        while(queue.size() > 0) {
-            MapLocation current = queue.remove(0);
+        MapLocation closestPossible = null;
 
-            for(Direction dir : Direction.allDirections()) {
-                MapLocation newLocation = current.add(dir);
+        for(int i=0;i<=robotX+6;i++) {
+            for(int j=0;j<=robotY+6;j++) {
+                MapLocation loc = new MapLocation(i, j);
 
-                if(!rc.canSenseLocation(newLocation)) continue;
-
-                if(rc.senseSoup(newLocation) == 0 && !rc.senseFlooding(newLocation)) {
-                    return newLocation;
+                if(rc.canSenseLocation(loc) && rc.onTheMap(loc) &&
+                        rc.senseSoup(loc) == 0 &&
+                        !rc.senseFlooding(loc) &&
+                        (rc.getLocation().distanceSquaredTo(loc) < rc.getLocation().distanceSquaredTo(closestPossible)) || closestPossible == null) {
+                    closestPossible = loc;
                 }
-
-                queue.add(newLocation);
             }
         }
 
-        return null;
+        return closestPossible;
     }
 
     public static class Bug2Pathfinder {
