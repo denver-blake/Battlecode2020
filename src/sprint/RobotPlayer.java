@@ -27,9 +27,9 @@ public class RobotPlayer {
                 case MINER:              r = new Miner(rc);             break;
                 case REFINERY:           r = new Refinery();          break;
                 case VAPORATOR:          r = new Vaporator();         break;
-                case DESIGN_SCHOOL:      r = new DesignSchool();      break;
+                case DESIGN_SCHOOL:      r = new DesignSchool(rc);      break;
                 case FULFILLMENT_CENTER: r = new FulfillmentCenter(); break;
-                case LANDSCAPER:         r = new Landscaper();        break;
+                case LANDSCAPER:         r = new Landscaper(rc);        break;
                 case DELIVERY_DRONE:     r = new Drone();     break;
                 case NET_GUN:            r = new NetGun();            break;
             }

@@ -1,9 +1,6 @@
 package sprint;
 
-import battlecode.common.Direction;
-import battlecode.common.GameActionException;
-import battlecode.common.MapLocation;
-import battlecode.common.RobotController;
+import battlecode.common.*;
 
 import java.util.LinkedList;
 import java.util.Queue;
@@ -37,10 +34,10 @@ public class Miner implements Robot {
     private RobotController rc;
 
     private MapLocation initialLocation;
-
+    private int turn;
     public Miner(RobotController rc) {
         this.rc = rc;
-
+        turn = 0;
         jobQueue = new LinkedList<>();
         jobQueue.add(new Job(Mode.SCOUT_DEPOSIT, (int) (Math.random() * 8), 0, 0, 0));
 
@@ -48,28 +45,34 @@ public class Miner implements Robot {
     }
 
     public void run() throws GameActionException {
-        if(!jobQueue.isEmpty()) {
-            switch (jobQueue.peek().mode) {
-                case BUILD_REFINERY:
-                    break;
-                case SCOUT_DEPOSIT:
-                    scoutDeposit();
-                    break;
-                case MINE_DEPOSIT:
-                    mineDeposit();
-                    break;
-                case BUILD_SCHOOL:
-                    break;
-                case BUILD_CENTER:
-                    break;
-                case BUILD_DEFENSIVE_GUN:
-                    break;
-                case BUILD_VAPORATOR:
-                    break;
-                default:
-                    break;
-            }
+        turn++;
+        if (turn < 20 && rc.isReady()) {
+            rc.move(Direction.NORTH);
+        } else if (rc.canBuildRobot(RobotType.DESIGN_SCHOOL,Direction.SOUTH)){
+            rc.buildRobot(RobotType.DESIGN_SCHOOL,Direction.SOUTH);
         }
+//        if(!jobQueue.isEmpty()) {
+//            switch (jobQueue.peek().mode) {
+//                case BUILD_REFINERY:
+//                    break;
+//                case SCOUT_DEPOSIT:
+//                    scoutDeposit();
+//                    break;
+//                case MINE_DEPOSIT:
+//                    mineDeposit();
+//                    break;
+//                case BUILD_SCHOOL:
+//                    break;
+//                case BUILD_CENTER:
+//                    break;
+//                case BUILD_DEFENSIVE_GUN:
+//                    break;
+//                case BUILD_VAPORATOR:
+//                    break;
+//                default:
+//                    break;
+//            }
+//        }
     }
 
     private void scoutDeposit() throws GameActionException {

@@ -133,7 +133,7 @@ public class utils {
     }
 
     public static MapLocation hqPosition(RobotController rc) throws GameActionException {
-        Transaction[] block = rc.getBlock(0);
+        Transaction[] block = rc.getBlock(1);
 
         for(int i=0; i<block.length; i++) {
             if(block[i].getMessage()[0] == utils.BLOCKCHAIN_TAG) {
@@ -144,4 +144,5 @@ public class utils {
         //hq failed to send its coords
         return new MapLocation(0, 0);
     }
+
 }
