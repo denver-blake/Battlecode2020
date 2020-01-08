@@ -191,15 +191,28 @@ public class Miner implements Robot {
                 utils.moveTowardsSimple(rc, new MapLocation(jobQueue.peek().param1, jobQueue.peek().param2));
             }
         } else {
-            if(rc.getLocation().equals(initialLocation)) {
-                for(Direction dir : Direction.allDirections()) {
-                    if(rc.canDepositSoup(dir)) {
-                        rc.depositSoup(dir, rc.getSoupCarrying());
-                        break;
+            if(refineryLocation == null) {
+                if (rc.getLocation().equals(initialLocation)) {
+                    for (Direction dir : Direction.allDirections()) {
+                        if (rc.canDepositSoup(dir)) {
+                            rc.depositSoup(dir, rc.getSoupCarrying());
+                            break;
+                        }
                     }
+                } else {
+                    utils.moveTowardsSimple(rc, initialLocation);
                 }
             } else {
-                utils.moveTowardsSimple(rc, initialLocation);
+                if(rc.getLocation().distanceSquaredTo(refineryLocation) <= 2) {
+                    for (Direction dir : Direction.allDirections()) {
+                        if (rc.canDepositSoup(dir)) {
+                            rc.depositSoup(dir, rc.getSoupCarrying());
+                            break;
+                        }
+                    }
+                } else {
+                    utils.moveTowardsSimple(rc, refineryLocation);
+                }
             }
         }
     }
