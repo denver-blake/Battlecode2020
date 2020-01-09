@@ -20,7 +20,7 @@ public class HQ implements Robot {
         if(rc.getRoundNum() > 250 && !builtSchool && rc.canBuildRobot(RobotType.MINER, Direction.NORTH)) {
             builtSchool = true;
             //make the school here?
-            //rc.buildRobot(RobotType.MINER, Direction.NORTH);
+            rc.buildRobot(RobotType.MINER, Direction.NORTH);
         }
     }
 

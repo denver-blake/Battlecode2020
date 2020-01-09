@@ -30,26 +30,26 @@ public class Landscaper implements Robot {
     private MapLocation HQ;
     private Job currentJob;
     private utils.Bug2Pathfinder pathfinder;
+    private int currentBlockChainRound;
+    private int roundBuilt;
 
 
     public Landscaper(RobotController rc) throws GameActionException {
         this.rc = rc;
         HQ = utils.hqPosition(rc);
         jobQueue = new LinkedList<>();
-        System.out.println("ROBOT COUNT: " + rc.getRobotCount());
-        if (rc.getRobotCount() > 6) {
-            System.out.println("FORTIFY HQ JOB");
-            jobQueue.add(new Job(Mode.FORTIFY_HQ,0,0));
-        } else {
-            System.out.println("PROTECT DEPOSIT JOB");
-            jobQueue.add(new ProtectDepositJob(Mode.PROTECT_DEPOSIT,33,6));
-        }
+        currentBlockChainRound = rc.getRoundNum()-1;
+
+        roundBuilt = rc.getRoundNum()-1;
+        System.out.println("Round Built: " + roundBuilt);
 
         pathfinder = null;
+
 
     }
 
     public void run() throws GameActionException {
+
 
         if(!jobQueue.isEmpty()) {
             switch (jobQueue.peek().mode) {
@@ -70,8 +70,35 @@ public class Landscaper implements Robot {
                     break;
             }
         }
+        readBlockChain();
 
         System.out.println("BYTECODE: " + Clock.getBytecodeNum());
+
+    }
+    private void readBlockChain() throws GameActionException {
+        //System.out.println("READING BLOCK AT ROUND " + currentBlockChainRound);
+        for (Transaction transaction : rc.getBlock(currentBlockChainRound)) {
+            int[] msg = transaction.getMessage();
+            for (int i = 0;i < msg.length;i++) {
+                System.out.print(msg[i] + ", ");
+            }
+            System.out.println("msg ");
+            if (msg[0] == utils.BLOCKCHAIN_TAG) {
+                if (msg[1] == roundBuilt) {
+                    if (msg[2] == utils.LANDSCAPER_FORTIFY_CASTLE_TAG) {
+                        System.out.println("Recieved fortify HQ Job");
+                        jobQueue.add(new Job(Mode.FORTIFY_HQ,0,0));
+                    } else if (msg[2] == utils.LANDSCAPER_PROTECT_DEPOSIT_TAG) {
+                        System.out.println("Recieved Protect Deposit Job at:" + (new MapLocation(msg[3],msg[4])));
+                        jobQueue.add(new ProtectDepositJob(Mode.PROTECT_DEPOSIT,msg[3],msg[4]));
+                    }
+                }
+            }
+        }
+        currentBlockChainRound++;
+        if (Clock.getBytecodesLeft() > 500 && currentBlockChainRound < rc.getRoundNum()) {
+            readBlockChain();
+        }
 
     }
 
@@ -113,77 +140,82 @@ public class Landscaper implements Robot {
         private utils.Bug2Pathfinder pathfinder;
         private MapLocation deposit;
         private List<MapLocation> wallLocations;
-        private MapLocation refineryLocation;
+        private MapLocation locationToProtect;
         public ProtectDepositJob(Mode mode, int param1, int param2) {
             super(mode, param1, param2);
             deposit = new MapLocation(param1,param2);
             pathfinder = new utils.Bug2Pathfinder(rc,deposit);
 
-            refineryLocation = null;
+            locationToProtect = new MapLocation(param1,param2);
         }
 
         public void work() throws GameActionException {
             if (!rc.isReady()) return;
-            if (refineryLocation != null) {
+            if (locationToProtect != null) {
                 System.out.println("Info: " + rc.senseElevation(rc.getLocation()) +
-                        " " + rc.getDirtCarrying() + " " + refineryLocation.distanceSquaredTo(rc.getLocation()));
+                        " " + rc.getDirtCarrying() + " " + locationToProtect.distanceSquaredTo(rc.getLocation()));
 
             }
-            if (refineryLocation == null) {
-                pathfinder.moveTowards();
-                if (rc.getLocation().isWithinDistanceSquared(deposit,24)) {
-                    for (RobotInfo robotInfo: rc.senseNearbyRobots(-1,rc.getTeam())) {
-                        if (robotInfo.type == RobotType.REFINERY) {
-                            refineryLocation = robotInfo.location;
-                            System.out.println("FOUND REFINERY: " + refineryLocation);
-//
-                        }
-                    }
-                }
-            } else if (refineryLocation.distanceSquaredTo(rc.getLocation()) < 25) {
-                System.out.println("moving to flood wall building location");
-                Direction moveDirection  = refineryLocation.directionTo(rc.getLocation());
-                if (rc.canMove(moveDirection)) {
-                    rc.move(moveDirection);
-                } else if (rc.canMove(moveDirection.rotateRight())) {
-                    rc.move(moveDirection.rotateRight());
-                } else if (rc.canMove(moveDirection.rotateLeft())) {
-                    rc.move(moveDirection.rotateLeft());
-                }
 
-            } else if (refineryLocation.distanceSquaredTo(rc.getLocation()) > 24 && refineryLocation.distanceSquaredTo(rc.getLocation()) < 33) {
+             if (atProtectDistance(rc.getLocation())) {
                 int waterLevel = utils.getWaterLevel(rc.getRoundNum());
-                if (rc.getDirtCarrying() == 0 && rc.canDigDirt(refineryLocation.directionTo(rc.getLocation()))) {
+                if (rc.getDirtCarrying() == 0 && rc.canDigDirt(locationToProtect.directionTo(rc.getLocation()))) {
                     System.out.println("Low on dirt, digging");
-                    rc.digDirt(refineryLocation.directionTo(rc.getLocation()));
-                } else if (waterLevel  + 2 >= rc.senseElevation(rc.getLocation())) {
+                    rc.digDirt(locationToProtect.directionTo(rc.getLocation()));
+                } else if (waterLevel  + 1 >= rc.senseElevation(rc.getLocation())) {
                     System.out.println("Water level: " + waterLevel + "Increasing elevation of flood wall");
                     rc.depositDirt(Direction.CENTER);
                 } else {
-                    Direction dir = rc.getLocation().directionTo(refineryLocation);
+                    Direction dir = rc.getLocation().directionTo(locationToProtect);
                     System.out.println("Finish current flood wall, looking for next wall segment to build");
                     for (int i = 0;i < 7;i++) {
                         dir = dir.rotateLeft();
                         MapLocation tempLoc = rc.getLocation().add(dir);
-                        if (refineryLocation.distanceSquaredTo(tempLoc) > 24 && refineryLocation.distanceSquaredTo(tempLoc) < 33) {
+                        if (atProtectDistance(tempLoc)) {
                             System.out.println("Next wall segment: " + tempLoc);
                             if (rc.senseElevation(tempLoc) < rc.senseElevation(rc.getLocation())) {
                                 System.out.println("Water level: " + waterLevel + "Increasing elevation of flood wall");
                                 rc.depositDirt(dir);
+                                break;
                             } else if (rc.senseElevation(tempLoc) > rc.senseElevation(rc.getLocation()) + 3){
                                 System.out.println("Too high, lowering  elevation of flood wall");
                                 rc.digDirt(dir);
-                            } else {
-                                rc.move(dir);
+                                break;
                             }
-                            break;
+                        }
+                    }
+                    dir = rc.getLocation().directionTo(locationToProtect);
+
+                    for (int i = 0;i < 7;i++) {
+                        dir = dir.rotateLeft();
+                        MapLocation tempLoc = rc.getLocation().add(dir);
+                        if (atProtectDistance(tempLoc)) {
+
+                            if (rc.canMove(dir)) {
+                                System.out.println("Moving to next segment");
+                                rc.move(dir);
+                                break;
+                            }
+
                         }
                     }
                 }
+            } else {
+                 pathfinder.moveTowards();
+             }
+
+
+
+        }
+        private boolean atProtectDistance(MapLocation loc) {
+            switch(locationToProtect.distanceSquaredTo(loc)) {
+                case 9:
+                case 10:
+                case 13:
+                case 18:
+                    return true;
             }
-
-
-
+            return false;
         }
 
     }

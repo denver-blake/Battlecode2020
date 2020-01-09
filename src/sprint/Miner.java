@@ -43,6 +43,7 @@ public class Miner implements Robot {
     private MapLocation refineryLocation;
     private int turn;
     private int roundBuilt;
+    private MapLocation schoolLocation;
     public Miner(RobotController rc) throws GameActionException {
         this.rc = rc;
         turn = 0;
@@ -50,8 +51,11 @@ public class Miner implements Robot {
         jobQueue = new LinkedList<>();
 
         if(roundBuilt > 250) {
-            MapLocation schoolLocation = utils.findHighGround(rc);
-            jobQueue.add(new Job(Mode.BUILD_SCHOOL, rc.getLocation().x + 6, rc.getLocation().y, 0, 0));
+            System.out.println("BUILD SCHOOL JOB");
+            schoolLocation = new MapLocation(rc.getLocation().x + 8, rc.getLocation().y);
+            System.out.println("SCHOOL LOCATION: " + schoolLocation);
+
+            jobQueue.add(new Job(Mode.BUILD_SCHOOL, schoolLocation.x, schoolLocation.y, 0, 0));
         } else {
             MapLocation lastRefineryLocation = utils.lastRefineryLocation(rc);
             System.out.println(lastRefineryLocation + " @ " + roundBuilt);
@@ -128,9 +132,6 @@ public class Miner implements Robot {
         if(rc.getLocation().distanceSquaredTo(hqLocation) > 2) {
             utils.moveTowardsSimple(rc, hqLocation);
         } else {
-            MapLocation centerLocation = utils.findHighGround(rc);
-            jobQueue.peek().param1 = centerLocation.x;
-            jobQueue.peek().param2 = centerLocation.y;
             jobQueue.peek().param3 = 1;
         }
     }
@@ -138,7 +139,7 @@ public class Miner implements Robot {
     private void buildSchool() throws GameActionException {
         if(jobQueue.peek().param3 == 1) {
             MapLocation schoolLocation = new MapLocation(jobQueue.peek().param1, jobQueue.peek().param2);
-
+            System.out.println("Looking for build school at " + schoolLocation + " dir: " + rc.getLocation().directionTo(schoolLocation));
             if(rc.getLocation().distanceSquaredTo(schoolLocation) <= 2
                     && rc.canBuildRobot(RobotType.DESIGN_SCHOOL, rc.getLocation().directionTo(schoolLocation))) {
                 rc.buildRobot(RobotType.DESIGN_SCHOOL, rc.getLocation().directionTo(schoolLocation));
@@ -147,12 +148,12 @@ public class Miner implements Robot {
             }
         }
 
-        if(rc.getLocation().distanceSquaredTo(hqLocation) > 2) {
-            utils.moveTowardsSimple(rc, hqLocation);
+        if(rc.getLocation().distanceSquaredTo(schoolLocation) > 2) {
+            System.out.println("MOVING TO SCHOOL LOCATION");
+            utils.moveTowardsSimple(rc, schoolLocation);
         } else {
-            MapLocation schoolLocation = utils.findHighGround(rc);
-            jobQueue.peek().param1 = schoolLocation.x;
-            jobQueue.peek().param2 = schoolLocation.y;
+            System.out.println("STARTING BUILDING");
+
             jobQueue.peek().param3 = 1;
         }
     }

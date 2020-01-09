@@ -10,6 +10,9 @@ public class utils {
     public static final int BLOCKCHAIN_TAG = -471247;
     public static final int NEW_REFINERY_TAG = -24880;
     public static final int FINISHED_REFINERY_TAG = 578838;
+    public static final int LANDSCAPER_PROTECT_DEPOSIT_TAG = 234987;
+    public static final int LANDSCAPER_FORTIFY_CASTLE_TAG = -876323;
+
 
     public static Direction intToDirection(int x) {
         switch(x) {
@@ -77,7 +80,7 @@ public class utils {
                 if(!rc.canSenseLocation(newLocation)) continue;
 
                 if(rc.senseElevation(newLocation) >= rc.senseElevation(highGround)
-                        && rc.senseRobotAtLocation(newLocation).type == null) {
+                        && rc.senseRobotAtLocation(newLocation) != null ) {
                     highGround = newLocation;
                 }
 
@@ -303,6 +306,16 @@ public class utils {
 
     public static int getWaterLevel(int round) {
         return (int) (Math.pow(Math.E,0.0028* round - 1.38 * Math.sin(0.00157 * round - 1.73) + 1.38 * Math.sin(-1.73)) - 1);
+    }
+
+    public static boolean tryBuild(RobotController rc,RobotType robotType) throws GameActionException {
+        for (Direction direction : Direction.allDirections()) {
+            if (rc.canBuildRobot(robotType,direction)) {
+                rc.buildRobot(robotType,direction);
+                return true;
+            }
+        }
+        return false;
     }
 
 }
