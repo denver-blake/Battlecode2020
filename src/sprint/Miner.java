@@ -49,12 +49,17 @@ public class Miner implements Robot {
         roundBuilt = rc.getRoundNum();
         jobQueue = new LinkedList<>();
 
-        MapLocation lastRefineryLocation = utils.lastRefineryLocation(rc);
-        System.out.println(lastRefineryLocation + " @ " + roundBuilt);
-        if(lastRefineryLocation == null) {
-            jobQueue.add(new Job(Mode.SCOUT_DEPOSIT, (int) (Math.random() * 8), 0, 0, 0));
+        if(roundBuilt > 250) {
+            MapLocation schoolLocation = utils.findHighGround(rc);
+            jobQueue.add(new Job(Mode.BUILD_SCHOOL, rc.getLocation().x + 6, rc.getLocation().y, 0, 0));
         } else {
-            jobQueue.add(new Job(Mode.MINE_DEPOSIT, lastRefineryLocation.x + 1, lastRefineryLocation.y, 0, 0));
+            MapLocation lastRefineryLocation = utils.lastRefineryLocation(rc);
+            System.out.println(lastRefineryLocation + " @ " + roundBuilt);
+            if (lastRefineryLocation == null) {
+                jobQueue.add(new Job(Mode.SCOUT_DEPOSIT, (int) (Math.random() * 8), 0, 0, 0));
+            } else {
+                jobQueue.add(new Job(Mode.MINE_DEPOSIT, lastRefineryLocation.x + 1, lastRefineryLocation.y, 0, 0));
+            }
         }
 
         initialLocation = rc.getLocation();
