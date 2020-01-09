@@ -48,11 +48,15 @@ public class Miner implements Robot {
         turn = 0;
         roundBuilt = rc.getRoundNum();
         jobQueue = new LinkedList<>();
-        if (rc.getRoundNum() > 200) {
-            jobQueue.add(new Job(Mode.BUILD_SCHOOL,rc.getLocation().x+10,rc.getLocation().y,0,0));
-        } else {
+
+        MapLocation lastRefineryLocation = utils.lastRefineryLocation(rc);
+        System.out.println(lastRefineryLocation + " @ " + roundBuilt);
+        if(lastRefineryLocation == null) {
             jobQueue.add(new Job(Mode.SCOUT_DEPOSIT, (int) (Math.random() * 8), 0, 0, 0));
+        } else {
+            jobQueue.add(new Job(Mode.MINE_DEPOSIT, lastRefineryLocation.x + 1, lastRefineryLocation.y, 0, 0));
         }
+
         initialLocation = rc.getLocation();
         for(Direction dir : Direction.allDirections()) {
             if(rc.senseRobotAtLocation(rc.getLocation().add(dir)) != null) {
@@ -63,44 +67,32 @@ public class Miner implements Robot {
 
     public void run() throws GameActionException {
         turn++;
-        if (roundBuilt > 200) {
-            if (turn < 25 && rc.isReady()) {
-                rc.move(Direction.NORTH);
-            } else if (rc.canBuildRobot(RobotType.DESIGN_SCHOOL, Direction.SOUTH)) {
-                rc.buildRobot(RobotType.DESIGN_SCHOOL, Direction.SOUTH);
-            }
-        } else  {
-            if (turn < 25 && rc.isReady()) {
-                rc.move(Direction.EAST);
-            } else if (rc.canBuildRobot(RobotType.REFINERY, Direction.SOUTH)) {
-                rc.buildRobot(RobotType.REFINERY, Direction.SOUTH);
+        System.out.println("running");
+        if(!jobQueue.isEmpty()) {
+            switch (jobQueue.peek().mode) {
+                case BUILD_REFINERY:
+                    buildRefinery();
+                    break;
+                case SCOUT_DEPOSIT:
+                    scoutDeposit();
+                    break;
+                case MINE_DEPOSIT:
+                    mineDeposit();
+                    break;
+                case BUILD_SCHOOL:
+                    buildSchool();
+                    break;
+                case BUILD_CENTER:
+                    buildCenter();
+                    break;
+                case BUILD_DEFENSIVE_GUN:
+                    break;
+                case BUILD_VAPORATOR:
+                    break;
+                default:
+                    break;
             }
         }
-//        if(!jobQueue.isEmpty()) {
-//            switch (jobQueue.peek().mode) {
-//                case BUILD_REFINERY:
-//                    buildRefinery();
-//                    break;
-//                case SCOUT_DEPOSIT:
-//                    scoutDeposit();
-//                    break;
-//                case MINE_DEPOSIT:
-//                    mineDeposit();
-//                    break;
-//                case BUILD_SCHOOL:
-//                    buildSchool();
-//                    break;
-//                case BUILD_CENTER:
-//                    buildCenter();
-//                    break;
-//                case BUILD_DEFENSIVE_GUN:
-//                    break;
-//                case BUILD_VAPORATOR:
-//                    break;
-//                default:
-//                    break;
-//            }
-//        }
     }
 
     private void buildRefinery() throws GameActionException {
@@ -163,7 +155,8 @@ public class Miner implements Robot {
     private void scoutDeposit() throws GameActionException {
         //first check if we're currently near any soup
         MapLocation nearbySoup = utils.findNearbySoup(rc);
-        if(nearbySoup != null) {
+        if(nearbySoup != null && utils.shouldCopSoup(rc)) {
+            System.out.println("copping soup @ " + nearbySoup.x + " " + nearbySoup.y);
             jobQueue.add(new Job(Mode.MINE_DEPOSIT, nearbySoup.x, nearbySoup.y, 0, 0));
             jobQueue.remove();
         } else {
@@ -171,7 +164,7 @@ public class Miner implements Robot {
                 rc.move(utils.intToDirection(jobQueue.peek().param1));
             else
                 jobQueue.peek().param1 = (int) (Math.random() * 8);
-        }
+            }
     }
 
     private void mineDeposit() throws GameActionException {
@@ -179,14 +172,12 @@ public class Miner implements Robot {
             if (rc.getLocation().x == jobQueue.peek().param1 && rc.getLocation().y == jobQueue.peek().param2) {
 
                 if(refineryLocation == null) {
-                    System.out.println("no refinery location");
                     MapLocation existingRefinery = utils.searchForRefinery(rc);
 
                     if(existingRefinery != null) {
                         refineryLocation = existingRefinery;
                     } else if(rc.getTeamSoup() > 200) {
                         //need to make a new refinery
-                        System.out.println("i want to make a new refinery");
                         MapLocation newRefineryLocation = utils.newRefineryLocation(rc);
 
                         if(newRefineryLocation != null) {
@@ -195,7 +186,6 @@ public class Miner implements Robot {
                         }
                     }
                 }
-                System.out.println("past the refinery stage");
 
                 if(rc.canMineSoup(Direction.CENTER)) {
                     rc.mineSoup(Direction.CENTER);

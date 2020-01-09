@@ -8,6 +8,8 @@ import battlecode.common.Direction;
 public class utils {
 
     public static final int BLOCKCHAIN_TAG = -471247;
+    public static final int NEW_REFINERY_TAG = -24880;
+    public static final int FINISHED_REFINERY_TAG = 578838;
 
     public static Direction intToDirection(int x) {
         switch(x) {
@@ -27,7 +29,6 @@ public class utils {
     public static void moveTowardsSimple(RobotController rc,MapLocation destination) throws GameActionException {
         Direction dir = rc.getLocation().directionTo(destination);
         if (rc.canMove(dir) && !rc.senseFlooding(rc.getLocation().add(dir))) {
-            System.out.println("Next Location" + rc.getLocation().add(dir));
             rc.move(dir);
             return;
         }
@@ -41,26 +42,24 @@ public class utils {
     }
 
     public static MapLocation findNearbySoup(RobotController rc) throws GameActionException {
-        List<MapLocation> queue = new LinkedList<>();
-        queue.add(rc.getLocation());
+        int robotX = rc.getLocation().x;
+        int robotY = rc.getLocation().y;
 
-        while(queue.size() > 0) {
-            MapLocation current = queue.remove(0);
+        MapLocation closestPossible = null;
 
-            for(Direction dir : Direction.allDirections()) {
-                MapLocation newLocation = current.add(dir);
+        for(int i=robotX-6;i<=robotX+6;i++) {
+            for(int j=robotY-6;j<=robotY+6;j++) {
+                MapLocation loc = new MapLocation(i, j);
 
-                if(!rc.canSenseLocation(newLocation)) continue;
-
-                if(rc.senseSoup(newLocation) > 0) {
-                    return newLocation;
+                if(rc.canSenseLocation(loc) && rc.onTheMap(loc) &&
+                        rc.senseSoup(loc) != 0 &&
+                        (closestPossible == null || rc.getLocation().distanceSquaredTo(loc) < rc.getLocation().distanceSquaredTo(closestPossible))) {
+                    closestPossible = loc;
                 }
-
-                queue.add(newLocation);
             }
         }
 
-        return null;
+        return closestPossible;
     }
 
     public static MapLocation findHighGround(RobotController rc) throws GameActionException {
@@ -128,6 +127,69 @@ public class utils {
         }
 
         return closestPossible;
+    }
+
+    public static int countNearbyMiners(RobotController rc) {
+        RobotInfo[] nearbyRobots = rc.senseNearbyRobots();
+
+        int nearbyMiners = 0;
+        for(RobotInfo info : nearbyRobots) {
+            if(info.team == rc.getTeam() && info.type == RobotType.MINER) {
+                nearbyMiners++;
+            }
+        }
+
+        return nearbyMiners;
+    }
+
+    public static MapLocation lastRefineryLocation(RobotController rc) throws GameActionException {
+
+         Set<Integer> usedRefineries = new HashSet<>();
+
+         for(int turn = rc.getRoundNum() - 1; turn >= 1; turn--) {
+            Transaction[] block = rc.getBlock(turn);
+
+            for(Transaction trans : block) {
+                if(trans.getMessage()[0] == BLOCKCHAIN_TAG) {
+                    if(trans.getMessage()[1] == FINISHED_REFINERY_TAG) {
+                        usedRefineries.add(trans.getMessage()[2] + trans.getMessage()[3]);
+                    }
+
+                    if(trans.getMessage()[1] == NEW_REFINERY_TAG
+                            && !usedRefineries.contains(trans.getMessage()[2] + trans.getMessage()[3])) {
+                        return new MapLocation(trans.getMessage()[2], trans.getMessage()[3]);
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public static boolean shouldCopSoup(RobotController rc) throws GameActionException {
+        Set<Integer> usedRefineries = new HashSet<>();
+
+        for(int turn = rc.getRoundNum() - 1; turn >= 1; turn--) {
+            Transaction[] block = rc.getBlock(turn);
+
+            for (Transaction trans : block) {
+                if (trans.getMessage()[0] == BLOCKCHAIN_TAG) {
+                    if (trans.getMessage()[1] == FINISHED_REFINERY_TAG) {
+                        usedRefineries.add(trans.getMessage()[2] + trans.getMessage()[3]);
+                    }
+                }
+            }
+        }
+
+        RobotInfo[] robots = rc.senseNearbyRobots();
+
+        for(RobotInfo robot : robots) {
+            if(robot.team == rc.getTeam() && robot.type == RobotType.REFINERY && usedRefineries.contains(robot.location.x + robot.location.y)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public static class Bug2Pathfinder {

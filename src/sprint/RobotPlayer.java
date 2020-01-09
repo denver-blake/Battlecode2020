@@ -17,15 +17,15 @@ public class RobotPlayer {
         turnCount = 0;
 
 
-        System.out.println("I'm a " + rc.getType() + " and I just got created!");
+        //System.out.println("I'm a " + rc.getType() + " and I just got created!");
         try {
             // Here, we've separated the controls into a different method for each RobotType.
             // You can add the missing ones or rewrite this into your own control structure.
-            System.out.println("I'm a " + rc.getType() + "! Location " + rc.getLocation());
+            //System.out.println("I'm a " + rc.getType() + "! Location " + rc.getLocation());
             switch (rc.getType()) {
                 case HQ:                 r = new HQ(rc);                break;
                 case MINER:              r = new Miner(rc);             break;
-                case REFINERY:           r = new Refinery();          break;
+                case REFINERY:           r = new Refinery(rc);          break;
                 case VAPORATOR:          r = new Vaporator();         break;
                 case DESIGN_SCHOOL:      r = new DesignSchool(rc);      break;
                 case FULFILLMENT_CENTER: r = new FulfillmentCenter(); break;
@@ -35,7 +35,7 @@ public class RobotPlayer {
             }
 
             // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
-
+            Clock.yield();
 
         } catch (Exception e) {
             System.out.println(rc.getType() + " Exception");
@@ -47,7 +47,7 @@ public class RobotPlayer {
             try {
                 // Here, we've separated the controls into a different method for each RobotType.
                 // You can add the missing ones or rewrite this into your own control structure.
-                System.out.println("I'm a " + rc.getType() + "! Location " + rc.getLocation());
+                //System.out.println("I'm a " + rc.getType() + "! Location " + rc.getLocation());
                 r.run();
 
                 // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
