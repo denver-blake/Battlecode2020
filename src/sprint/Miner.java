@@ -34,6 +34,8 @@ public class Miner implements Robot {
         }
     }
 
+    private utils.Bug2Pathfinder pathfinder;
+
     private LinkedList<Job> jobQueue;
     private RobotController rc;
 
@@ -63,6 +65,7 @@ public class Miner implements Robot {
                 jobQueue.add(new Job(Mode.SCOUT_DEPOSIT, (int) (Math.random() * 8), 0, 0, 0));
             } else {
                 jobQueue.add(new Job(Mode.MINE_DEPOSIT, lastRefineryLocation.x + 1, lastRefineryLocation.y, 0, 0));
+                pathfinder = new utils.Bug2Pathfinder(rc, new MapLocation(lastRefineryLocation.x + 1, lastRefineryLocation.y));
             }
         }
 
@@ -130,7 +133,7 @@ public class Miner implements Robot {
         }
 
         if(rc.getLocation().distanceSquaredTo(hqLocation) > 2) {
-            utils.moveTowardsSimple(rc, hqLocation);
+            utils.moveTowardsSimple(rc, initialLocation);
         } else {
             jobQueue.peek().param3 = 1;
         }
@@ -164,6 +167,7 @@ public class Miner implements Robot {
         if(nearbySoup != null && utils.shouldCopSoup(rc)) {
             System.out.println("copping soup @ " + nearbySoup.x + " " + nearbySoup.y);
             jobQueue.add(new Job(Mode.MINE_DEPOSIT, nearbySoup.x, nearbySoup.y, 0, 0));
+            pathfinder = new utils.Bug2Pathfinder(rc, nearbySoup);
             jobQueue.remove();
         } else {
             if(rc.canMove(utils.intToDirection(jobQueue.peek().param1)))
@@ -174,7 +178,7 @@ public class Miner implements Robot {
     }
 
     private void mineDeposit() throws GameActionException {
-        if(rc.getSoupCarrying() == 0) {
+        if(rc.getSoupCarrying() < 95) {
             if (rc.getLocation().x == jobQueue.peek().param1 && rc.getLocation().y == jobQueue.peek().param2) {
 
                 if(refineryLocation == null) {
@@ -195,6 +199,7 @@ public class Miner implements Robot {
 
                 if(rc.canMineSoup(Direction.CENTER)) {
                     rc.mineSoup(Direction.CENTER);
+                    pathfinder = new utils.Bug2Pathfinder(rc, initialLocation);
                 } else {
                     MapLocation nextSoup = utils.findNearbySoup(rc);
 
@@ -215,6 +220,7 @@ public class Miner implements Robot {
                     for (Direction dir : Direction.allDirections()) {
                         if (rc.canDepositSoup(dir)) {
                             rc.depositSoup(dir, rc.getSoupCarrying());
+                            pathfinder = new utils.Bug2Pathfinder(rc, new MapLocation(jobQueue.peek().param1, jobQueue.peek().param2));
                             break;
                         }
                     }

@@ -195,6 +195,17 @@ public class utils {
         return true;
     }
 
+    public static boolean canSeeHq(RobotController rc) {
+        RobotInfo[] robots = rc.senseNearbyRobots();
+
+        for(RobotInfo robot : robots) {
+            if(robot.team == rc.getTeam() && robot.type == RobotType.HQ)
+                return true;
+        }
+
+        return false;
+    }
+
     public static class Bug2Pathfinder {
         private RobotController rc;
         private MapLocation destination;
