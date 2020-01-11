@@ -162,7 +162,7 @@ public class Landscaper implements Robot {
                 if (rc.getDirtCarrying() == 0 && rc.canDigDirt(locationToProtect.directionTo(rc.getLocation()))) {
                     System.out.println("Low on dirt, digging");
                     rc.digDirt(locationToProtect.directionTo(rc.getLocation()));
-                } else if (waterLevel  + 1 >= rc.senseElevation(rc.getLocation())) {
+                } else if (waterLevel  + 2 >= rc.senseElevation(rc.getLocation())) {
                     System.out.println("Water level: " + waterLevel + "Increasing elevation of flood wall");
                     rc.depositDirt(Direction.CENTER);
                 } else {

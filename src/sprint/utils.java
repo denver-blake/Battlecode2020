@@ -7,11 +7,12 @@ import battlecode.common.Direction;
 
 public class utils {
 
-    public static final int BLOCKCHAIN_TAG = -471247;
-    public static final int NEW_REFINERY_TAG = -24880;
-    public static final int FINISHED_REFINERY_TAG = 578838;
-    public static final int LANDSCAPER_PROTECT_DEPOSIT_TAG = 234987;
-    public static final int LANDSCAPER_FORTIFY_CASTLE_TAG = -876323;
+
+    public static final int BLOCKCHAIN_TAG = (RobotPlayer.team == Team.A) ? -471247 : 471247;
+    public static final int NEW_REFINERY_TAG = (RobotPlayer.team == Team.A) ? -24880: 24880;
+    public static final int FINISHED_REFINERY_TAG = (RobotPlayer.team == Team.A) ? -578838 : 578838;
+    public static final int LANDSCAPER_PROTECT_DEPOSIT_TAG = (RobotPlayer.team == Team.A) ? -234987 : 234987;
+    public static final int LANDSCAPER_FORTIFY_CASTLE_TAG = (RobotPlayer.team == Team.A) ? -876323 : 876323;
 
 
     public static Direction intToDirection(int x) {

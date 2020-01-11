@@ -5,6 +5,7 @@ import battlecode.common.*;
 public class RobotPlayer {
 
     private static RobotController rc;
+    public static Team team;
     static int turnCount;
     private static Robot r;
 
@@ -13,7 +14,7 @@ public class RobotPlayer {
         // This is the RobotController object. You use it to perform actions from this robot,
         // and to get information on its current status.
         RobotPlayer.rc = rc;
-
+        team = rc.getTeam();
         turnCount = 0;
 
 
