@@ -24,11 +24,13 @@ public class Landscaper implements Robot {
             this.param2 = param2;
 
         }
+        public void work() throws  GameActionException{
+
+        }
     }
     private Queue<Job> jobQueue;
     private RobotController rc;
     private MapLocation HQ;
-    private Job currentJob;
     private utils.Bug2Pathfinder pathfinder;
     private int currentBlockChainRound;
     private int roundBuilt;
@@ -39,8 +41,8 @@ public class Landscaper implements Robot {
         HQ = utils.hqPosition(rc);
         jobQueue = new LinkedList<>();
         currentBlockChainRound = rc.getRoundNum()-1;
-
         roundBuilt = rc.getRoundNum()-1;
+
         System.out.println("Round Built: " + roundBuilt);
 
         pathfinder = null;
@@ -64,7 +66,7 @@ public class Landscaper implements Robot {
                 case ATTACK:
                     break;
                 case PROTECT_DEPOSIT:
-                    ((ProtectDepositJob) jobQueue.peek()).work();
+                    jobQueue.peek().work();
                     break;
                 default:
                     break;
@@ -79,12 +81,14 @@ public class Landscaper implements Robot {
         //System.out.println("READING BLOCK AT ROUND " + currentBlockChainRound);
         for (Transaction transaction : rc.getBlock(currentBlockChainRound)) {
             int[] msg = transaction.getMessage();
+            if (msg.length != 7) continue;
             for (int i = 0;i < msg.length;i++) {
                 System.out.print(msg[i] + ", ");
             }
             System.out.println("msg ");
             if (msg[0] == utils.BLOCKCHAIN_TAG) {
                 if (msg[1] == roundBuilt) {
+                    //Transaction tags to look for
                     if (msg[2] == utils.LANDSCAPER_FORTIFY_CASTLE_TAG) {
                         System.out.println("Recieved fortify HQ Job");
                         jobQueue.add(new Job(Mode.FORTIFY_HQ,0,0));
@@ -135,7 +139,7 @@ public class Landscaper implements Robot {
 
     }
 
-    public class ProtectDepositJob extends Job{
+    public class ProtectDepositJob extends Job {
 
         private utils.Bug2Pathfinder pathfinder;
         private MapLocation deposit;
