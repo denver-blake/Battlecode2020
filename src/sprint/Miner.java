@@ -78,33 +78,34 @@ public class Miner implements Robot {
     }
 
     public void run() throws GameActionException {
-        turn++;
-        System.out.println("running");
-        if(!jobQueue.isEmpty()) {
-            switch (jobQueue.peek().mode) {
-                case BUILD_REFINERY:
-                    buildRefinery();
-                    break;
-                case SCOUT_DEPOSIT:
-                    scoutDeposit();
-                    break;
-                case MINE_DEPOSIT:
-                    mineDeposit();
-                    break;
-                case BUILD_SCHOOL:
-                    buildSchool();
-                    break;
-                case BUILD_CENTER:
-                    buildCenter();
-                    break;
-                case BUILD_DEFENSIVE_GUN:
-                    break;
-                case BUILD_VAPORATOR:
-                    break;
-                default:
-                    break;
-            }
-        }
+        if (rc.canBuildRobot(RobotType.FULFILLMENT_CENTER,Direction.NORTH))  rc.buildRobot(RobotType.FULFILLMENT_CENTER,Direction.NORTH);
+//        turn++;
+//        System.out.println("running");
+//        if(!jobQueue.isEmpty()) {
+//            switch (jobQueue.peek().mode) {
+//                case BUILD_REFINERY:
+//                    buildRefinery();
+//                    break;
+//                case SCOUT_DEPOSIT:
+//                    scoutDeposit();
+//                    break;
+//                case MINE_DEPOSIT:
+//                    mineDeposit();
+//                    break;
+//                case BUILD_SCHOOL:
+//                    buildSchool();
+//                    break;
+//                case BUILD_CENTER:
+//                    buildCenter();
+//                    break;
+//                case BUILD_DEFENSIVE_GUN:
+//                    break;
+//                case BUILD_VAPORATOR:
+//                    break;
+//                default:
+//                    break;
+//            }
+//        }
     }
 
     private void buildRefinery() throws GameActionException {

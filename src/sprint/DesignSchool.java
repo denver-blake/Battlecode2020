@@ -25,7 +25,6 @@ public class DesignSchool implements Robot {
         }
     }
     private RobotController rc;
-    private boolean built = false;
     private Queue<Unit> buildQueue;
     private MapLocation hqLocation;
     private int currentBlockChainRound;
@@ -65,6 +64,7 @@ public class DesignSchool implements Robot {
     private void readBlockChain() throws GameActionException {
         for (Transaction transaction : rc.getBlock(currentBlockChainRound)) {
             int[] msg = transaction.getMessage();
+            if (msg.length != 7) continue;
             if (msg[0] == utils.BLOCKCHAIN_TAG) {
                 if (msg[1] == utils.NEW_REFINERY_TAG) {
                     MapLocation loc = new MapLocation(msg[2],msg[3]);

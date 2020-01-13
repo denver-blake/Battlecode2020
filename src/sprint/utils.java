@@ -7,12 +7,19 @@ import battlecode.common.Direction;
 
 public class utils {
 
-    public static final int BLOCKCHAIN_TAG = -471247;
-    public static final int NEW_REFINERY_TAG = -24880;
-    public static final int FINISHED_REFINERY_TAG = 578838;
-    public static final int LANDSCAPER_PROTECT_DEPOSIT_TAG = 234987;
-    public static final int LANDSCAPER_FORTIFY_CASTLE_TAG = -876323;
 
+    public static final int BLOCKCHAIN_TAG = (RobotPlayer.team == Team.A) ? -471247 : 471247;
+    public static final int NEW_REFINERY_TAG = (RobotPlayer.team == Team.A) ? -24880: 24880;
+    public static final int FINISHED_REFINERY_TAG = (RobotPlayer.team == Team.A) ? -578838 : 578838;
+    public static final int LANDSCAPER_PROTECT_DEPOSIT_TAG = (RobotPlayer.team == Team.A) ? -234987 : 234987;
+    public static final int LANDSCAPER_FORTIFY_CASTLE_TAG = (RobotPlayer.team == Team.A) ? -876323 : 876323;
+    public static final int UNREACHABLE_DEPOSIT_TAG = (RobotPlayer.team == Team.A) ? -526723 : 526723;
+    public static  final int UNDERWATER_DEPOSIT_TAG = (RobotPlayer.team == Team.A) ? -982794 : 982794;
+    public static final int BUILDER_TAG = (RobotPlayer.team == Team.A) ? -113298 : 113298;
+    public static final int SCOUT_TAG = (RobotPlayer.team == Team.A) ? -729234 : 729234;
+    public static final int MINER_TAG = (RobotPlayer.team == Team.A) ? -398274 : 398274;
+    public static final int SCOUT_DRONE_TAG = (RobotPlayer.team == Team.A) ? -432998 : 432998;
+    public static final int TRANSPORT_MINERS_TAG = (RobotPlayer.team == Team.A) ? -554094 : 554094;
 
     public static Direction intToDirection(int x) {
         switch(x) {
@@ -277,6 +284,56 @@ public class utils {
         }
     }
 
+    public static class Bug2PathfinderDrone {
+        private RobotController rc;
+        private MapLocation destination;
+        private List<MapLocation> line;
+        private Direction prevDirection;
+        public Bug2PathfinderDrone(RobotController rc, MapLocation destination) {
+            this.rc = rc;
+            this.destination = destination;
+            line = findLine(rc,rc.getLocation(),destination);
+        }
+
+        public void moveTowards() throws GameActionException {
+            if (rc.getCooldownTurns() >= 1) return;
+            Direction dir;
+
+            for (int i = 0;i < line.size()-1;i++) {
+
+                if (line.get(i).equals(rc.getLocation())) {
+                    dir = rc.getLocation().directionTo(line.get(i+1));
+                    System.out.println(dir + " Towards goal");
+                    if (rc.canMove(dir)) {
+                        System.out.println(dir + " Actual");
+                        prevDirection = dir;
+                        rc.move(dir);
+                        return;
+                    }
+                    for (int j = 0;j < 8;j++) {
+                        dir = dir.rotateLeft();
+                        if (rc.canMove(dir)) {
+                            prevDirection = dir;
+                            System.out.println(dir + " Actual");
+                            rc.move(dir);
+                            return;
+                        }
+                    }
+                }
+            }
+            dir = prevDirection.opposite().rotateLeft();
+            for (int j = 0;j < 8;j++) {
+                dir = dir.rotateLeft();
+                if (rc.canMove(dir) && !rc.senseFlooding(rc.getLocation().add(dir))) {
+                    prevDirection = dir;
+                    rc.move(dir);
+                    return;
+                }
+            }
+
+        }
+    }
+
 
 
     public static List<MapLocation> findLine(RobotController rc, MapLocation initial,MapLocation end) {
@@ -349,6 +406,4 @@ public class utils {
         }
         return false;
     }
-
-
 }
