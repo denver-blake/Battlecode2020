@@ -206,6 +206,27 @@ public class utils {
         return false;
     }
 
+    public static int countLocalSoup(RobotController rc) throws GameActionException {
+        int soup = 0;
+
+        int rx = rc.getLocation().x, ry = rc.getLocation().y;
+
+        for(int i=rx-6;i<=rx+6;i++) {
+            for(int j=ry-6;j<=ry+6;j++) {
+                if(rc.canSenseLocation(new MapLocation(i, j))) {
+                    soup += rc.senseSoup(new MapLocation(i, j));
+                }
+            }
+        }
+
+        return soup;
+    }
+
+    public static int soupToMiners(int soup) {
+        // 500 soup = 1 miner? linear for now
+        return soup / 500;
+    }
+
     public static class Bug2Pathfinder {
         private RobotController rc;
         private MapLocation destination;
@@ -328,5 +349,6 @@ public class utils {
         }
         return false;
     }
+
 
 }

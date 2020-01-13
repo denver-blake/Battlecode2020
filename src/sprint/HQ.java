@@ -28,5 +28,7 @@ public class HQ implements Robot {
 
         int[] hqPosBlock = {utils.BLOCKCHAIN_TAG, rc.getLocation().x, rc.getLocation().y, 0, 0, 0, 0};
         rc.submitTransaction(hqPosBlock, 5);
+
+        int nearbySoup = utils.countLocalSoup(rc);
     }
 }
