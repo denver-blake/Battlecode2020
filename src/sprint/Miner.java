@@ -78,8 +78,11 @@ public class Miner implements Robot {
     }
 
     public void run() throws GameActionException {
-        if (rc.canBuildRobot(RobotType.FULFILLMENT_CENTER,Direction.NORTH))  rc.buildRobot(RobotType.FULFILLMENT_CENTER,Direction.NORTH);
-//        turn++;
+        if (rc.canMove(Direction.NORTH) && turn < 3) {
+            rc.move(Direction.NORTH);
+        }
+        if (rc.canBuildRobot(RobotType.DESIGN_SCHOOL,Direction.NORTH))  rc.buildRobot(RobotType.DESIGN_SCHOOL,Direction.NORTH);
+        turn++;
 //        System.out.println("running");
 //        if(!jobQueue.isEmpty()) {
 //            switch (jobQueue.peek().mode) {

@@ -91,7 +91,26 @@ public class Drone implements Robot  {
                     locationsToSearch[i*2] = new MapLocation(4 + i * 9,rc.getMapHeight() - 5);
                 }
             }
+        }
 
+        //
+        public void emptyDeposit() throws GameActionException {
+            MapLocation minerLocation = null;
+            for (RobotInfo robot: rc.senseNearbyRobots(-1,rc.getTeam())) {
+                if (robot.type == RobotType.MINER) {
+                    minerLocation = robot.location;
+                    break;
+                }
+            }
+            if (minerLocation == null)
+            for (int i = -4;i <= 4;i++) {
+                for (int j = -4;j <= 4;j++) {
+                    MapLocation loc = new MapLocation(i,j);
+                    if (rc.canSenseLocation(loc) && rc.senseSoup(loc) > 0) {
+                        
+                    }
+                }
+            }
 
         }
         public void work() throws GameActionException {
@@ -119,6 +138,7 @@ public class Drone implements Robot  {
 
 
         }
+
 
 
     }

@@ -2,12 +2,14 @@ package sprint;
 
 import battlecode.common.*;
 
+
 import java.util.*;
 
 public class Landscaper implements Robot {
 
     enum Mode {
         FORTIFY_HQ,
+        GET_RID_OF_WATER,
         DEFEND_FROM_FLOOD, //  location to protect
         SAVE_WORKER, //(param1, param2) = worker location
         ATTACK, //(param1, param2) = enemy location
@@ -18,10 +20,9 @@ public class Landscaper implements Robot {
         Mode mode;
         int param1, param2;
 
-        public Job(Mode mode, int param1, int param2) {
+        public Job(Mode mode) {
             this.mode = mode;
-            this.param1 = param1;
-            this.param2 = param2;
+
 
         }
         public void work() throws  GameActionException{
@@ -44,6 +45,8 @@ public class Landscaper implements Robot {
         roundBuilt = rc.getRoundNum()-1;
 
         System.out.println("Round Built: " + roundBuilt);
+        jobQueue.add(new GetRidOfWaterJob(Mode.GET_RID_OF_WATER,HQ,4));
+        jobQueue.add(new ProtectDepositJob(Mode.PROTECT_DEPOSIT,HQ));
 
         pathfinder = null;
 
@@ -56,10 +59,12 @@ public class Landscaper implements Robot {
         if(!jobQueue.isEmpty()) {
             switch (jobQueue.peek().mode) {
                 case FORTIFY_HQ:
-                    fortifyHQ();
+
                     System.out.println("fortify");
                     break;
-                case DEFEND_FROM_FLOOD:
+                case GET_RID_OF_WATER:
+                    System.out.println("DEFENDING FROM FLOOD");
+                    jobQueue.peek().work();
                     break;
                 case SAVE_WORKER:
                     break;
@@ -91,10 +96,10 @@ public class Landscaper implements Robot {
                     //Transaction tags to look for
                     if (msg[2] == utils.LANDSCAPER_FORTIFY_CASTLE_TAG) {
                         System.out.println("Recieved fortify HQ Job");
-                        jobQueue.add(new Job(Mode.FORTIFY_HQ,0,0));
+//                        jobQueue.add(new Job(Mode.FORTIFY_HQ,0,0));
                     } else if (msg[2] == utils.LANDSCAPER_PROTECT_DEPOSIT_TAG) {
                         System.out.println("Recieved Protect Deposit Job at:" + (new MapLocation(msg[3],msg[4])));
-                        jobQueue.add(new ProtectDepositJob(Mode.PROTECT_DEPOSIT,msg[3],msg[4]));
+                        jobQueue.add(new ProtectDepositJob(Mode.PROTECT_DEPOSIT,new MapLocation(msg[3],msg[4])));
                     }
                 }
             }
@@ -106,51 +111,48 @@ public class Landscaper implements Robot {
 
     }
 
-    public void fortifyHQInit() {
-        pathfinder = new utils.Bug2Pathfinder(rc,HQ);
-    }
-    public void fortifyHQ() throws GameActionException {
-        if (pathfinder == null) {
-            fortifyHQInit();
-        }
-        if (!rc.isReady()) return;
-        if (!atFortifyHQLocation()) {
-            System.out.println("MOVING");
-            pathfinder.moveTowards();
-        } else if (rc.getDirtCarrying() < 1) {
-            Direction dir = rc.getLocation().directionTo(HQ).opposite();
-            rc.digDirt(dir);
 
-
-        } else {
-            Direction dir = rc.getLocation().directionTo(HQ);
-            rc.depositDirt(dir);
-        }
-    }
-    public boolean atFortifyHQLocation() {
-        switch(rc.getLocation().distanceSquaredTo(HQ)) {
-            case 9:
-            case 10:
-            case 13:
-            case 18:
-                return true;
-        }
-        return false;
-
-    }
+//    public void fortifyHQInit() {
+//        pathfinder = new utils.Bug2Pathfinder(rc,HQ);
+//    }
+//    public void fortifyHQ() throws GameActionException {
+//        if (pathfinder == null) {
+//            fortifyHQInit();
+//        }
+//        if (!rc.isReady()) return;
+//        if (!atFortifyHQLocation()) {
+//            System.out.println("MOVING");
+//            pathfinder.moveTowards();
+//        } else if (rc.getDirtCarrying() < 1) {
+//            Direction dir = rc.getLocation().directionTo(HQ).opposite();
+//            rc.digDirt(dir);
+//
+//
+//        } else {
+//            Direction dir = rc.getLocation().directionTo(HQ);
+//            rc.depositDirt(dir);
+//        }
+//    }
+//    public boolean atFortifyHQLocation() {
+//        switch(rc.getLocation().distanceSquaredTo(HQ)) {
+//            case 9:
+//            case 10:
+//            case 13:
+//            case 18:
+//                return true;
+//        }
+//        return false;
+//
+//    }
 
     public class ProtectDepositJob extends Job {
 
         private utils.Bug2Pathfinder pathfinder;
-        private MapLocation deposit;
-        private List<MapLocation> wallLocations;
         private MapLocation locationToProtect;
-        public ProtectDepositJob(Mode mode, int param1, int param2) {
-            super(mode, param1, param2);
-            deposit = new MapLocation(param1,param2);
-            pathfinder = new utils.Bug2Pathfinder(rc,deposit);
-
-            locationToProtect = new MapLocation(param1,param2);
+        public ProtectDepositJob(Mode mode, MapLocation locationToProtect) {
+            super(mode);
+            this.locationToProtect = locationToProtect;
+            pathfinder = new utils.Bug2Pathfinder(rc,locationToProtect);
         }
 
         public void work() throws GameActionException {
@@ -221,6 +223,140 @@ public class Landscaper implements Robot {
             }
             return false;
         }
+
+    }
+
+    public class GetRidOfWaterJob extends Job {
+
+        int radius;
+        MapLocation center;
+        int radiusSquared;
+
+        boolean[][] waterMap;
+        boolean needDirt;
+
+        public GetRidOfWaterJob(Mode mode,MapLocation center, int radius) {
+
+            super(mode);
+            this.center = center;
+            this.radius = radius;
+            this.radiusSquared = radius * radius;
+            this.waterMap = new boolean[radius*2 + 1][radius * 2 + 1];
+
+            needDirt = rc.getDirtCarrying() < 25;
+
+            System.out.println("GET RID OF WATER JOB ACQUIRED");
+
+
+
+        }
+
+        public void work() throws GameActionException {
+            if (rc.getDirtCarrying() == 0) {
+                System.out.println("Getting dirt");
+                needDirt = true;
+            } else if (rc.getDirtCarrying() == 25) {
+                needDirt = false;
+            }
+            if (needDirt) {
+                Direction dir = center.directionTo(rc.getLocation());
+                if (rc.getLocation().distanceSquaredTo(center) > radiusSquared) {
+                    if (rc.canDigDirt(dir)) {
+                        rc.digDirt(dir);
+                        rc.setIndicatorDot(rc.adjacentLocation(dir),255,255,255);
+                    } else if (rc.canDigDirt(dir.rotateRight())){
+                        rc.digDirt(dir.rotateRight());
+                        rc.setIndicatorDot(rc.adjacentLocation(dir.rotateRight()),255,255,255);
+                    } else if (rc.canDigDirt(dir.rotateLeft())){
+                        rc.digDirt(dir.rotateLeft());
+                        rc.setIndicatorDot(rc.adjacentLocation(dir.rotateLeft()),255,255,255);
+                    }
+                } else {
+                   utils.moveTowardsLandscaper(rc,rc.adjacentLocation(dir).add(dir));
+                }
+            }
+            System.out.println("WORKING");
+            if (!rc.isReady()) return;
+            if (rc.getLocation().distanceSquaredTo(center) > radiusSquared) {
+                System.out.println("Moving towards center");
+                utils.moveTowardsLandscaper(rc,center);
+                rc.setIndicatorLine(rc.getLocation(),center,0,255,0);
+            } else if (!updateWaterMap()) {
+                System.out.println("Still flooded");
+
+                    boolean dig = false;
+                    for (Direction dir: Direction.allDirections()) {
+                        if (rc.adjacentLocation(dir).distanceSquaredTo(center) <= radiusSquared && rc.canDepositDirt(dir) && rc.senseFlooding(rc.adjacentLocation(dir)) && rc.senseElevation(rc.adjacentLocation(dir)) > -200) {
+                            rc.depositDirt(dir);
+                            rc.setIndicatorDot(rc.adjacentLocation(dir),0,0,0);
+                            System.out.println("filling up water" );
+                            rc.setIndicatorLine(rc.getLocation(),rc.adjacentLocation(dir),0,255,0);
+                            dig = true;
+                            break;
+                        }
+                    }
+                    if (!dig) {
+
+                        moveTowardsWater();
+                    }
+            } else {
+                jobQueue.remove();
+                System.out.println("NO MORE WATER, DONE!!!!!!!!!!!!!!!!");
+            }
+        }
+
+        private void moveTowardsWater() throws GameActionException {
+            for (int i = 0; i < waterMap.length; i++) {
+                for (int j = 0; j < waterMap.length; j++) {
+
+                    if (waterMap[i][j]) {
+
+                        MapLocation location = new MapLocation(center.x - radius + i, center.y - radius + j);
+                        utils.moveTowardsLandscaper(rc,location);
+                        rc.setIndicatorLine(rc.getLocation(),location,0,255,0);
+                        return;
+                    }
+                }
+            }
+        }
+
+        //update water map,
+        private boolean updateWaterMap() throws GameActionException {
+            boolean noWater = true;
+            for (int i = 0;i < waterMap.length;i++) {
+                for (int j = 0;j < waterMap.length;j++) {
+                    //System.out.println("updating water map");
+
+                        //System.out.println("There is water or unknown");
+
+                        MapLocation location = new MapLocation(center.x - radius + i,center.y - radius + j);
+                        if (location.distanceSquaredTo(center) > radiusSquared) waterMap[i][j] = false;
+                        else if (rc.canSenseLocation(location) && (!rc.senseFlooding(location) || rc.senseElevation(location) < -200)) {
+                            waterMap[i][j] = false;
+                            rc.setIndicatorDot(location,0,0,255);
+                           // System.out.println("There is no water or too deep");
+
+                        } else if (rc.canSenseLocation(location) && rc.senseFlooding(location)&& rc.senseElevation(location) > -200){
+                            rc.setIndicatorDot(location,255,0,0);
+                            waterMap[i][j] = true;
+                            //System.out.println("There is shallow water");
+
+                            noWater = false;
+                        } else if (waterMap[i][j]){
+                            rc.setIndicatorDot(location,255,0,0);
+                            noWater = false;
+                        } else if (!waterMap[i][j]) {
+                            rc.setIndicatorDot(location,0,0,255);
+
+                        }
+
+
+                }
+            }
+            System.out.println("Is there watter?? " + noWater);
+            return noWater;
+        }
+
 
     }
 

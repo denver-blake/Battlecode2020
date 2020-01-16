@@ -25,10 +25,11 @@ public class DesignSchool implements Robot {
         }
     }
     private RobotController rc;
-    private Queue<Unit> buildQueue;
+    private LinkedList<Unit> buildQueue;
     private MapLocation hqLocation;
     private int currentBlockChainRound;
     private List<MapLocation> refineryLocations;
+    private int built = 0;
     
     public DesignSchool(RobotController rc) throws GameActionException {
         this.rc = rc;
@@ -38,25 +39,32 @@ public class DesignSchool implements Robot {
         currentBlockChainRound = 1;
         buildQueue.add(new Unit(UnitType.PROTECT_DEPOSIT,hqLocation.x,hqLocation.y));
 
+        for (int i = 0;i < 16;i++) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,0,0));
+        }
     }
 
     public void run() throws GameActionException {
-        System.out.println("COOLDOWN: " + rc.getCooldownTurns() + "TEAM SOUP: " + rc.getTeamSoup());
-        if(!buildQueue.isEmpty()) {
-            switch (buildQueue.peek().unitType) {
-                case FORTIFY_HQ:
-                    buildFortifyHQ();
-                    System.out.println("build fortify HQ unit");
-                    break;
-                
-                case PROTECT_DEPOSIT:
-                    buildProtectDeposit();
-                    break;
-                default:
-                    break;
-            }
+        if (built < 3 && rc.canBuildRobot(RobotType.LANDSCAPER,Direction.NORTH)) {
+            built++;
+            rc.buildRobot(RobotType.LANDSCAPER,Direction.NORTH);
         }
-        readBlockChain();
+//        System.out.println("COOLDOWN: " + rc.getCooldownTurns() + "TEAM SOUP: " + rc.getTeamSoup());
+//        if(!buildQueue.isEmpty()) {
+//            switch (buildQueue.peek().unitType) {
+//                case FORTIFY_HQ:
+//                    buildFortifyHQ();
+//                    System.out.println("build fortify HQ unit");
+//                    break;
+//
+//                case PROTECT_DEPOSIT:
+//                    buildProtectDeposit();
+//                    break;
+//                default:
+//                    break;
+//            }
+//        }
+//        readBlockChain();
 
 
     }
@@ -70,7 +78,7 @@ public class DesignSchool implements Robot {
                     MapLocation loc = new MapLocation(msg[2],msg[3]);
                     if (!refineryLocations.contains(loc)) {
                         refineryLocations.add(loc);
-                        buildQueue.add(new Unit(UnitType.PROTECT_DEPOSIT,loc.x,loc.y));
+                        buildQueue.addFirst(new Unit(UnitType.PROTECT_DEPOSIT,loc.x,loc.y));
                     }
                 }
             }

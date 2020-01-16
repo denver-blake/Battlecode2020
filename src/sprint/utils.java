@@ -51,6 +51,78 @@ public class utils {
         }
     }
 
+    public static void moveTowardsLandscaper(RobotController rc,MapLocation destination) throws GameActionException {
+        if (!rc.isReady()) return;
+        int waterLevel = utils.getWaterLevel(rc.getRoundNum()) + 2;
+        if (rc.getDirtCarrying() > 0 && rc.senseElevation(rc.getLocation()) < waterLevel) {
+            rc.depositDirt(Direction.CENTER);
+            return;
+        }
+        Direction tempDir = rc.getLocation().directionTo(destination);
+
+        Direction[] dirs = {tempDir,tempDir.rotateLeft(),tempDir.rotateRight()};
+        for (int i = 0;i < dirs.length;i++) {
+            Direction dir = dirs[i];
+            if (rc.canMove(dir) && !rc.senseFlooding(rc.adjacentLocation(dir))) {
+                rc.move(dir);
+                return;
+            } else if (rc.senseRobotAtLocation(rc.adjacentLocation(dir)) == null && Math.abs(rc.senseElevation(rc.getLocation()) - rc.senseElevation(rc.adjacentLocation(dir))) < 15) {
+                if (rc.senseElevation(rc.getLocation()) > rc.senseElevation(rc.adjacentLocation(dir))) {
+                    if (rc.getDirtCarrying() == 0) {
+                        if (rc.senseElevation(rc.getLocation()) > waterLevel) {
+                            rc.digDirt(Direction.CENTER);
+                            return;
+                        } else {
+                            for (int j = 0; j < 7; j++) {
+                                Direction temp = dir.rotateLeft();
+                                if (rc.canDigDirt(temp)) {
+                                    rc.digDirt(temp);
+                                    return;
+                                }
+                            }
+                        }
+                    } else {
+                        rc.depositDirt(dir);
+                        return;
+                    }
+                } else {
+                    if (rc.getDirtCarrying() == 0) {
+                        if (rc.senseElevation(rc.adjacentLocation(dir)) > waterLevel) {
+                            rc.digDirt(dir);
+                        } else {
+                            for (int j = 0; j < 7; j++) {
+                                Direction temp = dir.rotateLeft();
+                                if (rc.canDigDirt(temp)) {
+                                    rc.digDirt(temp);
+                                    return;
+                                }
+                            }
+                        }
+                    } else {
+                        rc.depositDirt(dir);
+                        return;
+                    }
+
+                }
+                if (rc.getDirtCarrying() == 0) {
+
+                } else {
+                    rc.depositDirt(dir);
+                    return;
+                }
+            }
+        }
+
+        Direction dir = tempDir;
+        for (int i = 0;i < 7;i++) {
+            dir = dir.rotateLeft();
+            if (rc.canMove(dir) && !rc.senseFlooding(rc.getLocation().add(dir))) {
+                rc.move(dir);
+                return;
+            }
+        }
+    }
+
     public static MapLocation findNearbySoup(RobotController rc) throws GameActionException {
         int robotX = rc.getLocation().x;
         int robotY = rc.getLocation().y;
@@ -385,6 +457,79 @@ public class utils {
         }
         return false;
     }
+
+    public static MapLocation centroid(MapLocation[] locations) {
+        int x = 0;
+        int y = 0;
+        for (MapLocation location : locations) {
+            x += location.x;
+            y += location.y;
+        }
+        return new MapLocation(x / locations.length, y / locations.length);
+    }
+
+
+    public static boolean tryDigHighest(RobotController rc) throws GameActionException {
+        Direction bestDir = Direction.CENTER;
+        for (Direction dir: Direction.allDirections()) {
+            if (rc.canDigDirt(dir)) {
+                if (rc.senseElevation(rc.adjacentLocation(dir)) > rc.senseElevation(rc.adjacentLocation(bestDir))) {
+                    bestDir = dir;
+                }
+            }
+        }
+        if (rc.canDigDirt(bestDir)) {
+            rc.digDirt(bestDir);
+            rc.setIndicatorLine(rc.getLocation(),rc.adjacentLocation(bestDir),0,255,0);
+            return true;
+        }
+        return false;
+    }
+
+    public static boolean tryDigLowest(RobotController rc) throws GameActionException {
+        Direction bestDir = Direction.CENTER;
+        for (Direction dir: Direction.allDirections()) {
+            if (rc.canDigDirt(dir)) {
+                if (rc.senseElevation(rc.adjacentLocation(dir)) < rc.senseElevation(rc.adjacentLocation(bestDir))) {
+                    bestDir = dir;
+                }
+            }
+        }
+        if (rc.canDigDirt(bestDir)) {
+            rc.digDirt(bestDir);
+            rc.setIndicatorLine(rc.getLocation(),rc.adjacentLocation(bestDir),0,255,0);
+            return true;
+        }
+        return false;
+    }
+
+    public static boolean tryDepositLowest(RobotController rc) throws GameActionException {
+        Direction bestDir = Direction.CENTER;
+        for (Direction dir: Direction.allDirections()) {
+            if (rc.canDigDirt(dir)) {
+                if (rc.senseElevation(rc.adjacentLocation(dir)) < rc.senseElevation(rc.adjacentLocation(bestDir))) {
+                    bestDir = dir;
+                }
+            }
+        }
+        if (rc.canDigDirt(bestDir)) {
+            rc.digDirt(bestDir);
+            return true;
+        }
+        return false;
+    }
+
+
+    public static boolean notAlliedBuilding(RobotController rc,MapLocation location) throws GameActionException {
+        RobotInfo robot = rc.senseRobotAtLocation(location);
+        return robot == null || robot.team == rc.getTeam().opponent() ||
+                robot.type == RobotType.MINER || robot.type == RobotType.COW || robot.type == RobotType.DELIVERY_DRONE || robot.type == RobotType.LANDSCAPER;
+    }
+
+
+
+
+
 
 
 

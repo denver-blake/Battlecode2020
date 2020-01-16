@@ -23,6 +23,7 @@ public class HQ implements Robot {
     private RobotController rc;
     Queue<Unit> buildQueue;
     int currentBlockChainRound;
+    boolean built;
 
 
     public HQ (RobotController rc) throws GameActionException {
@@ -51,7 +52,10 @@ public class HQ implements Robot {
 //            }
 //        }
 //        readBlockChain();
-        if (rc.canBuildRobot(RobotType.MINER,Direction.NORTH))  rc.buildRobot(RobotType.MINER,Direction.NORTH);
+        if (!built && rc.canBuildRobot(RobotType.MINER,Direction.NORTH)) {
+            built = true;
+            rc.buildRobot(RobotType.MINER,Direction.NORTH);
+        }
 
     }
     private void readBlockChain() throws GameActionException {
