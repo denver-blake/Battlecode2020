@@ -294,6 +294,7 @@ public class utils {
             this.rc = rc;
             this.destination = destination;
             line = findLine(rc,rc.getLocation(),destination);
+            prevDirection = rc.getLocation().directionTo(destination);
         }
 
         public void moveTowards() throws GameActionException {

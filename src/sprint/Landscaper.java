@@ -45,7 +45,7 @@ public class Landscaper implements Robot {
         roundBuilt = rc.getRoundNum()-1;
 
         System.out.println("Round Built: " + roundBuilt);
-        jobQueue.add(new GetRidOfWaterJob(Mode.GET_RID_OF_WATER,HQ,4));
+        jobQueue.add(new GetRidOfWaterJob(Mode.GET_RID_OF_WATER,HQ,4,18));
         jobQueue.add(new ProtectDepositJob(Mode.PROTECT_DEPOSIT,HQ));
 
         pathfinder = null;
@@ -147,12 +147,12 @@ public class Landscaper implements Robot {
 
     public class ProtectDepositJob extends Job {
 
-        private utils.Bug2Pathfinder pathfinder;
+
         private MapLocation locationToProtect;
         public ProtectDepositJob(Mode mode, MapLocation locationToProtect) {
             super(mode);
             this.locationToProtect = locationToProtect;
-            pathfinder = new utils.Bug2Pathfinder(rc,locationToProtect);
+
         }
 
         public void work() throws GameActionException {
@@ -207,7 +207,7 @@ public class Landscaper implements Robot {
                     }
                 }
             } else {
-                 pathfinder.moveTowards();
+                 utils.moveTowardsLandscaper(rc,locationToProtect);
              }
 
 
@@ -235,12 +235,12 @@ public class Landscaper implements Robot {
         boolean[][] waterMap;
         boolean needDirt;
 
-        public GetRidOfWaterJob(Mode mode,MapLocation center, int radius) {
+        public GetRidOfWaterJob(Mode mode,MapLocation center, int radius,int radiusSquared) {
 
             super(mode);
             this.center = center;
             this.radius = radius;
-            this.radiusSquared = radius * radius;
+            this.radiusSquared = radiusSquared;
             this.waterMap = new boolean[radius*2 + 1][radius * 2 + 1];
 
             needDirt = rc.getDirtCarrying() < 25;
