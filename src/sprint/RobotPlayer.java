@@ -32,7 +32,7 @@ public class RobotPlayer {
                 case FULFILLMENT_CENTER: r = new FulfillmentCenter(rc); break;
                 case LANDSCAPER:         r = new Landscaper(rc);        break;
                 case DELIVERY_DRONE:     r = new Drone(rc);               break;
-                case NET_GUN:            r = new NetGun();            break;
+                case NET_GUN:            r = new NetGun(rc);            break;
             }
 
             // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again

@@ -24,6 +24,7 @@ public class HQ implements Robot {
     Queue<Unit> buildQueue;
     int currentBlockChainRound;
     boolean built;
+    NetGun netGun;
 
 
     public HQ (RobotController rc) throws GameActionException {
@@ -32,10 +33,12 @@ public class HQ implements Robot {
         currentBlockChainRound = 1;
         int[] hqPosBlock = {utils.BLOCKCHAIN_TAG, rc.getLocation().x, rc.getLocation().y, 0, 0, 0, 0};
         rc.submitTransaction(hqPosBlock, 5);
+        netGun = new NetGun(rc);
     }
 
 
     public void run() throws GameActionException {
+        netGun.run();
 //        if(!buildQueue.isEmpty()) {
 //            switch (buildQueue.peek().unitType) {
 //                case SCOUT:
