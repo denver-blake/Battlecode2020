@@ -46,6 +46,7 @@ public class Miner implements Robot {
     private int turn;
     private int roundBuilt;
     private MapLocation schoolLocation;
+    private boolean built = false;
     public Miner(RobotController rc) throws GameActionException {
         this.rc = rc;
         turn = 0;
@@ -70,18 +71,16 @@ public class Miner implements Robot {
         }
 
         initialLocation = rc.getLocation();
-        for(Direction dir : Direction.allDirections()) {
-            if(rc.senseRobotAtLocation(rc.getLocation().add(dir)) != null) {
-                hqLocation = rc.getLocation().add(dir);
-            }
-        }
+        hqLocation = utils.hqPosition(rc);
     }
 
     public void run() throws GameActionException {
-        if (rc.canMove(Direction.NORTH) && turn < 3) {
-            rc.move(Direction.NORTH);
+        if (built) rc.disintegrate();
+
+        if (rc.canBuildRobot(RobotType.DESIGN_SCHOOL,Direction.NORTH))  {
+            rc.buildRobot(RobotType.DESIGN_SCHOOL,Direction.NORTH);
+            built = true;
         }
-        if (rc.canBuildRobot(RobotType.DESIGN_SCHOOL,Direction.NORTH))  rc.buildRobot(RobotType.DESIGN_SCHOOL,Direction.NORTH);
         turn++;
 //        System.out.println("running");
 //        if(!jobQueue.isEmpty()) {

@@ -10,6 +10,7 @@ import java.util.Queue;
 public class DesignSchool implements Robot {
     enum UnitType {
         FORTIFY_HQ,
+        DISINTEGRATE,
         PROTECT_DEPOSIT // (param1,param2) = deposit location
 
     }
@@ -38,33 +39,42 @@ public class DesignSchool implements Robot {
         refineryLocations = new ArrayList<MapLocation>();
         currentBlockChainRound = 1;
         buildQueue.add(new Unit(UnitType.PROTECT_DEPOSIT,hqLocation.x,hqLocation.y));
+        buildQueue.add(new Unit(UnitType.PROTECT_DEPOSIT,hqLocation.x,hqLocation.y));
 
-        for (int i = 0;i < 16;i++) {
-            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,0,0));
-        }
+
     }
 
     public void run() throws GameActionException {
-        if (built < 3 && rc.canBuildRobot(RobotType.LANDSCAPER,Direction.NORTH)) {
-            built++;
-            rc.buildRobot(RobotType.LANDSCAPER,Direction.NORTH);
-        }
-//        System.out.println("COOLDOWN: " + rc.getCooldownTurns() + "TEAM SOUP: " + rc.getTeamSoup());
-//        if(!buildQueue.isEmpty()) {
-//            switch (buildQueue.peek().unitType) {
-//                case FORTIFY_HQ:
-//                    buildFortifyHQ();
-//                    System.out.println("build fortify HQ unit");
-//                    break;
+//        if (built < 1 ) {
 //
-//                case PROTECT_DEPOSIT:
-//                    buildProtectDeposit();
-//                    break;
-//                default:
-//                    break;
-//            }
+//            rc.buildRobot(RobotType.LANDSCAPER,Direction.NORTH);
+//
+//            built++;
 //        }
-//        readBlockChain();
+        System.out.println("COOLDOWN: " + rc.getCooldownTurns() + "TEAM SOUP: " + rc.getTeamSoup());
+        if(!buildQueue.isEmpty()) {
+            switch (buildQueue.peek().unitType) {
+                case FORTIFY_HQ:
+                    buildFortifyHQ();
+                    System.out.println("build fortify HQ unit");
+                    break;
+
+                case PROTECT_DEPOSIT:
+                    buildProtectDeposit();
+                    break;
+                case DISINTEGRATE:
+                    int[] msg = {utils.BLOCKCHAIN_TAG,rc.getRoundNum(),utils.START_FORTIFICATION,0,0,0,0};
+                    if (rc.canSubmitTransaction(msg,10)) {
+                        rc.submitTransaction(msg,10);
+                        System.out.println("SUBMITTED JOB TRANSACTION");
+                        rc.disintegrate();
+
+                    }
+                default:
+                    break;
+            }
+        }
+        readBlockChain();
 
 
     }
@@ -81,6 +91,11 @@ public class DesignSchool implements Robot {
                         buildQueue.addFirst(new Unit(UnitType.PROTECT_DEPOSIT,loc.x,loc.y));
                     }
                 }
+                if (msg[2] == utils.GOT_RID_OF_WATER) {
+                    if (msg[3] == hqLocation.x && msg[4] == hqLocation.y) {
+                        createFortifyHQBuildQueue();
+                    }
+                }
             }
         }
         currentBlockChainRound++;
@@ -90,10 +105,123 @@ public class DesignSchool implements Robot {
 
     }
 
+    private void createFortifyHQBuildQueue() throws GameActionException {
+        Direction dir;
+        Direction rightDir;
+        Direction leftDir;
+        MapLocation rightLoc;
+        MapLocation leftLoc;
+
+//        dir = rc.getLocation().directionTo(hqLocation);
+//        leftLoc = hqLocation.add(dir.rotateLeft());
+//        rightLoc = hqLocation.add(dir.rotateRight());
+//        leftDir = dir;
+//        rightDir = dir;
+//        if (rc.onTheMap(leftLoc.add(leftDir))) {
+//            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,leftLoc.add(leftDir).x,leftLoc.add(leftDir).y));
+//        }
+//        if (rc.onTheMap(rightLoc.add(rightDir))) {
+//            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,rightLoc.add(rightDir).x,rightLoc.add(rightDir).y));
+//        }
+//        leftDir = leftDir.rotateLeft();
+//        rightDir = rightDir.rotateRight();
+//        if (rc.onTheMap(leftLoc.add(leftDir))) {
+//            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,leftLoc.add(leftDir).x,leftLoc.add(leftDir).y));
+//        }
+//        if (rc.onTheMap(rightLoc.add(rightDir))) {
+//            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,rightLoc.add(rightDir).x,rightLoc.add(rightDir).y));
+//        }
+//        leftDir = leftDir.rotateLeft();
+//        rightDir = rightDir.rotateRight();
+//        if (rc.onTheMap(leftLoc.add(leftDir))) {
+//            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,leftLoc.add(leftDir).x,leftLoc.add(leftDir).y));
+//        }
+//        if (rc.onTheMap(rightLoc.add(rightDir))) {
+//            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,rightLoc.add(rightDir).x,rightLoc.add(rightDir).y));
+//        }
+//
+
+
+         dir = rc.getLocation().directionTo(hqLocation);
+        if (rc.onTheMap(hqLocation.add(dir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(dir).x,hqLocation.add(dir).y));
+        }
+        rightDir = dir.rotateRight();
+        leftDir = dir.rotateLeft();
+        if (rc.onTheMap(hqLocation.add(rightDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(rightDir).x,hqLocation.add(rightDir).y));
+        }
+        if (rc.onTheMap(hqLocation.add(leftDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(leftDir).x,hqLocation.add(leftDir).y));
+        }
+        rightDir = rightDir.rotateRight();
+        leftDir = leftDir.rotateLeft();
+        if (rc.onTheMap(hqLocation.add(rightDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(rightDir).x,hqLocation.add(rightDir).y));
+        }
+        if (rc.onTheMap(hqLocation.add(leftDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(leftDir).x,hqLocation.add(leftDir).y));
+        }
+        rightDir = rightDir.rotateRight();
+        leftDir = leftDir.rotateLeft();
+        if (rc.onTheMap(hqLocation.add(rightDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(rightDir).x,hqLocation.add(rightDir).y));
+        }
+        if (rc.onTheMap(hqLocation.add(leftDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(leftDir).x,hqLocation.add(leftDir).y));
+        }
+        dir = dir.opposite();
+        if (rc.onTheMap(hqLocation.add(dir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(dir).x,hqLocation.add(dir).y));
+        }
+
+
+
+        dir = rc.getLocation().directionTo(hqLocation);
+        leftDir = dir.rotateLeft().rotateLeft();
+        rightDir = dir.rotateRight().rotateRight();
+        dir = dir.opposite();
+        leftLoc = hqLocation.add(dir.rotateRight());
+        rightLoc = hqLocation.add(dir.rotateLeft());
+        if (rc.onTheMap(leftLoc.add(leftDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,leftLoc.add(leftDir).x,leftLoc.add(leftDir).y));
+        }
+        if (rc.onTheMap(rightLoc.add(rightDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,rightLoc.add(rightDir).x,rightLoc.add(rightDir).y));
+        }
+        leftDir = leftDir.rotateLeft();
+        rightDir = rightDir.rotateRight();
+        if (rc.onTheMap(leftLoc.add(leftDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,leftLoc.add(leftDir).x,leftLoc.add(leftDir).y));
+        }
+        if (rc.onTheMap(rightLoc.add(rightDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,rightLoc.add(rightDir).x,rightLoc.add(rightDir).y));
+        }
+        leftDir = leftDir.rotateLeft();
+        rightDir = rightDir.rotateRight();
+        if (rc.onTheMap(leftLoc.add(leftDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,leftLoc.add(leftDir).x,leftLoc.add(leftDir).y));
+        }
+        if (rc.onTheMap(rightLoc.add(rightDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,rightLoc.add(rightDir).x,rightLoc.add(rightDir).y));
+        }
+
+
+        buildQueue.add(new Unit(UnitType.DISINTEGRATE,0,0));
+
+
+
+
+
+
+
+    }
+
     private void buildFortifyHQ() throws GameActionException {
-        if (rc.getTeamSoup() > 200 && utils.tryBuild(rc,RobotType.LANDSCAPER)) {
+        MapLocation loc = new MapLocation(buildQueue.peek().param1,buildQueue.peek().param2);
+        if (rc.getTeamSoup() > 200 && utils.tryBuildDirectional(rc,RobotType.LANDSCAPER,rc.getLocation().directionTo(loc))) {
             System.out.println("Built fortify HQ Landscaper");
-            int[] msg = {utils.BLOCKCHAIN_TAG,rc.getRoundNum(),utils.LANDSCAPER_FORTIFY_CASTLE_TAG,0,0,0,0};
+            int[] msg = {utils.BLOCKCHAIN_TAG,rc.getRoundNum(),utils.LANDSCAPER_FORTIFY_CASTLE_TAG,loc.x,loc.y,0,0};
             if (rc.canSubmitTransaction(msg,10)) {
                 rc.submitTransaction(msg,10);
                 System.out.println("SUBMITTED JOB TRANSACTION");

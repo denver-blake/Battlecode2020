@@ -35,6 +35,7 @@ public class Landscaper implements Robot {
     private utils.Bug2Pathfinder pathfinder;
     private int currentBlockChainRound;
     private int roundBuilt;
+    private boolean startFortification;
 
 
     public Landscaper(RobotController rc) throws GameActionException {
@@ -43,10 +44,10 @@ public class Landscaper implements Robot {
         jobQueue = new LinkedList<>();
         currentBlockChainRound = rc.getRoundNum()-1;
         roundBuilt = rc.getRoundNum()-1;
-
+        startFortification  = false;
         System.out.println("Round Built: " + roundBuilt);
-        jobQueue.add(new GetRidOfWaterJob(Mode.GET_RID_OF_WATER,HQ,4,18));
-        jobQueue.add(new ProtectDepositJob(Mode.PROTECT_DEPOSIT,HQ));
+//        jobQueue.add(new GetRidOfWaterJob(Mode.GET_RID_OF_WATER,HQ,4,18));
+//        jobQueue.add(new ProtectDepositJob(Mode.PROTECT_DEPOSIT,HQ));
 
         pathfinder = null;
 
@@ -61,6 +62,7 @@ public class Landscaper implements Robot {
                 case FORTIFY_HQ:
 
                     System.out.println("fortify");
+                    jobQueue.peek().work();
                     break;
                 case GET_RID_OF_WATER:
                     System.out.println("DEFENDING FROM FLOOD");
@@ -79,7 +81,7 @@ public class Landscaper implements Robot {
         }
         readBlockChain();
 
-        System.out.println("BYTECODE: " + Clock.getBytecodeNum());
+        //System.out.println("BYTECODE: " + Clock.getBytecodeNum());
 
     }
     private void readBlockChain() throws GameActionException {
@@ -95,12 +97,16 @@ public class Landscaper implements Robot {
                 if (msg[1] == roundBuilt) {
                     //Transaction tags to look for
                     if (msg[2] == utils.LANDSCAPER_FORTIFY_CASTLE_TAG) {
-                        System.out.println("Recieved fortify HQ Job");
-//                        jobQueue.add(new Job(Mode.FORTIFY_HQ,0,0));
+                        System.out.println("Recieved fortify HQ Job at: " + (new MapLocation(msg[3],msg[4])));
+                        jobQueue.add(new FortifyHQJob(Mode.FORTIFY_HQ,new MapLocation(msg[3],msg[4])));
                     } else if (msg[2] == utils.LANDSCAPER_PROTECT_DEPOSIT_TAG) {
                         System.out.println("Recieved Protect Deposit Job at:" + (new MapLocation(msg[3],msg[4])));
+                        jobQueue.add(new GetRidOfWaterJob(Mode.GET_RID_OF_WATER,new MapLocation(msg[3],msg[4]),3,13));
                         jobQueue.add(new ProtectDepositJob(Mode.PROTECT_DEPOSIT,new MapLocation(msg[3],msg[4])));
                     }
+                }
+                if (msg[2] == utils.START_FORTIFICATION) {
+                    startFortification = true;
                 }
             }
         }
@@ -145,15 +151,77 @@ public class Landscaper implements Robot {
 //
 //    }
 
+    public class FortifyHQJob extends  Job {
+
+        MapLocation location;
+        public FortifyHQJob(Mode mode, MapLocation location) {
+            super(mode);
+            this.location = location;
+        }
+
+        public void work() throws GameActionException {
+            if (!rc.isReady()) return;
+            if (!rc.getLocation().equals(location)) {
+                utils.moveTowardsLandscaperNoWater(rc,location);
+            } else {
+                System.out.println("AT LOCATION");
+                if (rc.getDirtCarrying() != 25) {
+                    System.out.println("looking to dig dirt");
+                    if (rc.getLocation().distanceSquaredTo(HQ) <= 2) {
+                        Direction dir = HQ.directionTo(rc.getLocation());
+                        if (rc.canDigDirt(dir)) rc.digDirt(dir);
+                        else if (rc.canDigDirt(dir.rotateLeft())) rc.digDirt(dir.rotateLeft());
+                        else if (rc.canDigDirt(dir.rotateRight())) rc.digDirt(dir.rotateRight());
+                    } else {
+                        rc.digDirt(Direction.CENTER);
+                    }
+                } else  if (rc.getLocation().distanceSquaredTo(HQ) <= 2) {
+                    depositLowestWall();
+
+
+                } else if (rc.getLocation().distanceSquaredTo(HQ) <= 8) {
+                    depositLowestWall();
+
+                }
+            }
+        }
+
+        public void depositLowestWall() throws GameActionException {
+            Direction bestDir = null;
+            int bestHeight = Integer.MAX_VALUE;
+            for (Direction dir: Direction.allDirections()) {
+                if (rc.canDepositDirt(dir)) {
+                    MapLocation tempLoc = rc.adjacentLocation(dir);
+                    if (tempLoc.distanceSquaredTo(HQ) <= 2 && !tempLoc.equals(HQ) && rc.senseRobotAtLocation(tempLoc) != null) {
+                        if (rc.senseElevation(tempLoc) < bestHeight) {
+                            bestDir = dir;
+                            bestHeight = rc.senseElevation(rc.adjacentLocation(dir));
+                        }
+                    }
+                }
+            }
+            if (bestDir != null) {
+                rc.depositDirt(bestDir);
+            }
+        }
+
+    }
+
     public class ProtectDepositJob extends Job {
 
 
         private MapLocation locationToProtect;
+        private int heightIncrease;
+        private boolean goLeft;
         public ProtectDepositJob(Mode mode, MapLocation locationToProtect) {
             super(mode);
             this.locationToProtect = locationToProtect;
+            heightIncrease = 0;
+            goLeft = true;
 
         }
+
+
 
         public void work() throws GameActionException {
             if (!rc.isReady()) return;
@@ -174,44 +242,91 @@ public class Landscaper implements Robot {
                 } else {
                     Direction dir = rc.getLocation().directionTo(locationToProtect);
                     System.out.println("Finish current flood wall, looking for next wall segment to build");
-                    for (int i = 0;i < 7;i++) {
-                        dir = dir.rotateLeft();
+
+                    for (int i = 0;i < 5;i++) {
+                        if (goLeft) {
+                            dir = dir.rotateLeft();
+                        } else {
+                            dir = dir.rotateRight();
+                        }
                         MapLocation tempLoc = rc.getLocation().add(dir);
                         if (atProtectDistance(tempLoc)) {
+                            if (rc.isReady() && (!rc.onTheMap(tempLoc) || rc.senseRobotAtLocation(tempLoc) != null)) {
+                                goLeft = !goLeft;
+                                break;
+                            }
                             System.out.println("Next wall segment: " + tempLoc);
-                            if (rc.senseElevation(tempLoc) < rc.senseElevation(rc.getLocation())) {
+
+                            if (rc.senseElevation(tempLoc) < rc.senseElevation(rc.getLocation())+ heightIncrease) {
                                 System.out.println("Water level: " + waterLevel + "Increasing elevation of flood wall");
                                 rc.depositDirt(dir);
                                 break;
                             } else if (rc.senseElevation(tempLoc) > rc.senseElevation(rc.getLocation()) + 3){
-                                System.out.println("Too high, lowering  elevation of flood wall");
-                                rc.digDirt(dir);
-                                break;
+                                if (rc.getDirtCarrying() == 25) {
+                                    rc.depositDirt(Direction.CENTER);
+                                    break;
+                                } else {
+                                    System.out.println("Too high, lowering  elevation of flood wall");
+                                    rc.digDirt(dir);
+                                    break;
+                                }
                             }
                         }
                     }
                     dir = rc.getLocation().directionTo(locationToProtect);
 
-                    for (int i = 0;i < 7;i++) {
-                        dir = dir.rotateLeft();
+                    for (int i = 0;i < 5;i++) {
+                        if (goLeft) {
+                            dir = dir.rotateLeft();
+                        } else {
+                            dir = dir.rotateRight();
+                        }
                         MapLocation tempLoc = rc.getLocation().add(dir);
                         if (atProtectDistance(tempLoc)) {
-
+                            if (rc.isReady() && (!rc.onTheMap(tempLoc) || rc.senseRobotAtLocation(tempLoc) != null)) {
+                                goLeft = !goLeft;
+                                break;
+                            }
                             if (rc.canMove(dir)) {
                                 System.out.println("Moving to next segment");
                                 rc.move(dir);
+
+                                if (increaseHeight()) {
+                                    heightIncrease = 2;
+                                } else {
+                                    heightIncrease = 0;
+                                }
                                 break;
                             }
 
                         }
                     }
                 }
-            } else {
+            } else if (rc.getLocation().distanceSquaredTo(locationToProtect) < 9){
+                 utils.moveAwayLandscaper(rc,locationToProtect);
+             } else {
                  utils.moveTowardsLandscaper(rc,locationToProtect);
              }
 
 
 
+        }
+
+        private boolean increaseHeight() throws GameActionException {
+            Direction dir = rc.getLocation().directionTo(locationToProtect);
+            System.out.println("Finish current flood wall, looking for next wall segment to build");
+            int heightIncrease = 0;
+            for (int i = 0;i < 7;i++) {
+                dir = dir.rotateLeft();
+                MapLocation tempLoc = rc.getLocation().add(dir);
+                if (atProtectDistance(tempLoc)) {
+
+                    if (rc.senseElevation(tempLoc) != rc.senseElevation(rc.getLocation()) || rc.senseRobotAtLocation(tempLoc) != null) {
+                        return false;
+                    }
+                }
+            }
+            return true;
         }
         private boolean atProtectDistance(MapLocation loc) {
             switch(locationToProtect.distanceSquaredTo(loc)) {
@@ -252,6 +367,7 @@ public class Landscaper implements Robot {
         }
 
         public void work() throws GameActionException {
+            int waterLevel = utils.getWaterLevel(rc.getRoundNum())+2;
             if (rc.getDirtCarrying() == 0) {
                 System.out.println("Getting dirt");
                 needDirt = true;
@@ -259,23 +375,27 @@ public class Landscaper implements Robot {
                 needDirt = false;
             }
             if (needDirt) {
-                Direction dir = center.directionTo(rc.getLocation());
-                if (rc.getLocation().distanceSquaredTo(center) > radiusSquared) {
-                    if (rc.canDigDirt(dir)) {
-                        rc.digDirt(dir);
-                        rc.setIndicatorDot(rc.adjacentLocation(dir),255,255,255);
-                    } else if (rc.canDigDirt(dir.rotateRight())){
-                        rc.digDirt(dir.rotateRight());
-                        rc.setIndicatorDot(rc.adjacentLocation(dir.rotateRight()),255,255,255);
-                    } else if (rc.canDigDirt(dir.rotateLeft())){
-                        rc.digDirt(dir.rotateLeft());
-                        rc.setIndicatorDot(rc.adjacentLocation(dir.rotateLeft()),255,255,255);
-                    }
+                if (rc.canDepositDirt(Direction.CENTER) && rc.senseElevation(rc.getLocation()) < waterLevel) {
+                    rc.depositDirt(Direction.CENTER);
                 } else {
-                   utils.moveTowardsLandscaper(rc,rc.adjacentLocation(dir).add(dir));
+                    Direction dir = center.directionTo(rc.getLocation());
+                    if (rc.getLocation().distanceSquaredTo(center) > radiusSquared) {
+                        if (rc.canDigDirt(dir)) {
+                            rc.digDirt(dir);
+                            rc.setIndicatorDot(rc.adjacentLocation(dir), 255, 255, 255);
+                        } else if (rc.canDigDirt(dir.rotateRight())) {
+                            rc.digDirt(dir.rotateRight());
+                            rc.setIndicatorDot(rc.adjacentLocation(dir.rotateRight()), 255, 255, 255);
+                        } else if (rc.canDigDirt(dir.rotateLeft())) {
+                            rc.digDirt(dir.rotateLeft());
+                            rc.setIndicatorDot(rc.adjacentLocation(dir.rotateLeft()), 255, 255, 255);
+                        }
+                    } else {
+                        utils.moveTowardsLandscaper(rc, rc.adjacentLocation(dir).add(dir));
+                    }
                 }
             }
-            System.out.println("WORKING");
+
             if (!rc.isReady()) return;
             if (rc.getLocation().distanceSquaredTo(center) > radiusSquared) {
                 System.out.println("Moving towards center");
@@ -286,7 +406,9 @@ public class Landscaper implements Robot {
 
                     boolean dig = false;
                     for (Direction dir: Direction.allDirections()) {
-                        if (rc.adjacentLocation(dir).distanceSquaredTo(center) <= radiusSquared && rc.canDepositDirt(dir) && rc.senseFlooding(rc.adjacentLocation(dir)) && rc.senseElevation(rc.adjacentLocation(dir)) > -200) {
+                        if (rc.adjacentLocation(dir).distanceSquaredTo(center) <= radiusSquared && rc.canDepositDirt(dir)
+                                && rc.senseElevation(rc.adjacentLocation(dir)) < waterLevel && rc.senseElevation(rc.adjacentLocation(dir)) > -200 &&
+                                utils.notAlliedBuilding(rc,rc.adjacentLocation(dir))) {
                             rc.depositDirt(dir);
                             rc.setIndicatorDot(rc.adjacentLocation(dir),0,0,0);
                             System.out.println("filling up water" );
@@ -300,8 +422,16 @@ public class Landscaper implements Robot {
                         moveTowardsWater();
                     }
             } else {
-                jobQueue.remove();
-                System.out.println("NO MORE WATER, DONE!!!!!!!!!!!!!!!!");
+                int[] msg = {utils.BLOCKCHAIN_TAG,rc.getRoundNum(),utils.GOT_RID_OF_WATER,center.x,center.y,0,0};
+                if (rc.canSubmitTransaction(msg,10)) {
+                    rc.submitTransaction(msg, 10);
+                    System.out.println("SUBMITTED JOB TRANSACTION");
+
+                    System.out.println("NO MORE WATER, DONE!!!!!!!!!!!!!!!!");
+                    jobQueue.remove();
+                }
+
+
             }
         }
 
@@ -322,6 +452,7 @@ public class Landscaper implements Robot {
 
         //update water map,
         private boolean updateWaterMap() throws GameActionException {
+            int waterLevel = utils.getWaterLevel(rc.getRoundNum())+2;
             boolean noWater = true;
             for (int i = 0;i < waterMap.length;i++) {
                 for (int j = 0;j < waterMap.length;j++) {
@@ -331,12 +462,12 @@ public class Landscaper implements Robot {
 
                         MapLocation location = new MapLocation(center.x - radius + i,center.y - radius + j);
                         if (location.distanceSquaredTo(center) > radiusSquared) waterMap[i][j] = false;
-                        else if (rc.canSenseLocation(location) && (!rc.senseFlooding(location) || rc.senseElevation(location) < -200)) {
+                        else if (rc.canSenseLocation(location) && (!(rc.senseElevation(location) < waterLevel) || rc.senseElevation(location) < -200 || !utils.notAlliedBuilding(rc,location))) {
                             waterMap[i][j] = false;
                             rc.setIndicatorDot(location,0,0,255);
                            // System.out.println("There is no water or too deep");
 
-                        } else if (rc.canSenseLocation(location) && rc.senseFlooding(location)&& rc.senseElevation(location) > -200){
+                        } else if (rc.canSenseLocation(location) && (rc.senseElevation(location) < waterLevel) && rc.senseElevation(location) > -200){
                             rc.setIndicatorDot(location,255,0,0);
                             waterMap[i][j] = true;
                             //System.out.println("There is shallow water");

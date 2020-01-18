@@ -20,6 +20,8 @@ public class utils {
     public static final int MINER_TAG = (RobotPlayer.team == Team.A) ? -398274 : 398274;
     public static final int SCOUT_DRONE_TAG = (RobotPlayer.team == Team.A) ? -432998 : 432998;
     public static final int TRANSPORT_MINERS_TAG = (RobotPlayer.team == Team.A) ? -554094 : 554094;
+    public static final int START_FORTIFICATION = (RobotPlayer.team == Team.A) ? -909232 : 909232;
+    public static final int GOT_RID_OF_WATER = (RobotPlayer.team == Team.A) ? -124322 : 124322;
 
     public static Direction intToDirection(int x) {
         switch(x) {
@@ -52,6 +54,8 @@ public class utils {
     }
 
     public static void moveTowardsLandscaper(RobotController rc,MapLocation destination) throws GameActionException {
+        System.out.println("Moving towards: " + destination);
+        rc.setIndicatorLine(rc.getLocation(),destination,255,255,0);
         if (!rc.isReady()) return;
         int waterLevel = utils.getWaterLevel(rc.getRoundNum()) + 2;
         if (rc.getDirtCarrying() > 0 && rc.senseElevation(rc.getLocation()) < waterLevel) {
@@ -63,10 +67,10 @@ public class utils {
         Direction[] dirs = {tempDir,tempDir.rotateLeft(),tempDir.rotateRight()};
         for (int i = 0;i < dirs.length;i++) {
             Direction dir = dirs[i];
-            if (rc.canMove(dir) && !rc.senseFlooding(rc.adjacentLocation(dir))) {
+            if (rc.canMove(dir) && rc.senseElevation(rc.adjacentLocation(dir)) >= waterLevel) {
                 rc.move(dir);
                 return;
-            } else if (rc.senseRobotAtLocation(rc.adjacentLocation(dir)) == null && Math.abs(rc.senseElevation(rc.getLocation()) - rc.senseElevation(rc.adjacentLocation(dir))) < 15) {
+            } else if (rc.senseRobotAtLocation(rc.adjacentLocation(dir)) == null && Math.abs(rc.senseElevation(rc.getLocation()) - rc.senseElevation(rc.adjacentLocation(dir))) < 500) {
                 if (rc.senseElevation(rc.getLocation()) > rc.senseElevation(rc.adjacentLocation(dir))) {
                     if (rc.getDirtCarrying() == 0) {
                         if (rc.senseElevation(rc.getLocation()) > waterLevel) {
@@ -99,17 +103,127 @@ public class utils {
                             }
                         }
                     } else {
-                        rc.depositDirt(dir);
+                        rc.depositDirt(Direction.CENTER);
                         return;
                     }
 
                 }
-                if (rc.getDirtCarrying() == 0) {
 
+            }
+        }
+
+        Direction dir = tempDir;
+        for (int i = 0;i < 7;i++) {
+            dir = dir.rotateLeft();
+            if (rc.canMove(dir) && !rc.senseFlooding(rc.getLocation().add(dir))) {
+                rc.move(dir);
+                return;
+            }
+        }
+    }
+
+    public static void moveAwayLandscaper(RobotController rc,MapLocation destination) throws GameActionException {
+        System.out.println("Moving towards: " + destination);
+        rc.setIndicatorLine(rc.getLocation(),destination,255,255,0);
+        if (!rc.isReady()) return;
+        int waterLevel = utils.getWaterLevel(rc.getRoundNum()) + 2;
+        if (rc.getDirtCarrying() > 0 && rc.senseElevation(rc.getLocation()) < waterLevel) {
+            rc.depositDirt(Direction.CENTER);
+            return;
+        }
+        Direction tempDir = rc.getLocation().directionTo(destination).opposite();
+
+        Direction[] dirs = {tempDir,tempDir.rotateLeft(),tempDir.rotateRight()};
+        for (int i = 0;i < dirs.length;i++) {
+            Direction dir = dirs[i];
+            if (rc.canMove(dir) && rc.senseElevation(rc.adjacentLocation(dir)) >= waterLevel) {
+                rc.move(dir);
+                return;
+            } else if (rc.senseRobotAtLocation(rc.adjacentLocation(dir)) == null && Math.abs(rc.senseElevation(rc.getLocation()) - rc.senseElevation(rc.adjacentLocation(dir))) < 500) {
+                if (rc.senseElevation(rc.getLocation()) > rc.senseElevation(rc.adjacentLocation(dir))) {
+                    if (rc.getDirtCarrying() == 0) {
+                        if (rc.senseElevation(rc.getLocation()) > waterLevel) {
+                            rc.digDirt(Direction.CENTER);
+                            return;
+                        } else {
+                            for (int j = 0; j < 7; j++) {
+                                Direction temp = dir.rotateLeft();
+                                if (rc.canDigDirt(temp)) {
+                                    rc.digDirt(temp);
+                                    return;
+                                }
+                            }
+                        }
+                    } else {
+                        rc.depositDirt(dir);
+                        return;
+                    }
                 } else {
-                    rc.depositDirt(dir);
-                    return;
+                    if (rc.getDirtCarrying() == 0) {
+                        if (rc.senseElevation(rc.adjacentLocation(dir)) > waterLevel) {
+                            rc.digDirt(dir);
+                        } else {
+                            for (int j = 0; j < 7; j++) {
+                                Direction temp = dir.rotateLeft();
+                                if (rc.canDigDirt(temp)) {
+                                    rc.digDirt(temp);
+                                    return;
+                                }
+                            }
+                        }
+                    } else {
+                        rc.depositDirt(Direction.CENTER);
+                        return;
+                    }
+
                 }
+
+            }
+        }
+
+        Direction dir = tempDir;
+        for (int i = 0;i < 7;i++) {
+            dir = dir.rotateLeft();
+            if (rc.canMove(dir) && !rc.senseFlooding(rc.getLocation().add(dir))) {
+                rc.move(dir);
+                return;
+            }
+        }
+    }
+
+    public static void moveTowardsLandscaperNoWater(RobotController rc,MapLocation destination) throws GameActionException {
+        System.out.println("Moving towards: " + destination);
+        rc.setIndicatorLine(rc.getLocation(),destination,255,255,0);
+        if (!rc.isReady()) return;
+
+        Direction tempDir = rc.getLocation().directionTo(destination);
+
+        Direction[] dirs = {tempDir,tempDir.rotateLeft(),tempDir.rotateRight()};
+        for (int i = 0;i < dirs.length;i++) {
+            Direction dir = dirs[i];
+            if (rc.canMove(dir) && !rc.senseFlooding(rc.adjacentLocation(dir))) {
+                rc.move(dir);
+                return;
+            } else if (rc.senseRobotAtLocation(rc.adjacentLocation(dir)) == null && Math.abs(rc.senseElevation(rc.getLocation()) - rc.senseElevation(rc.adjacentLocation(dir))) < 500) {
+                if (rc.senseElevation(rc.getLocation()) > rc.senseElevation(rc.adjacentLocation(dir))) {
+                    if (rc.getDirtCarrying() == 0) {
+                        rc.digDirt(Direction.CENTER);
+                        return;
+                    } else {
+                        rc.depositDirt(dir);
+                        return;
+                    }
+                } else {
+                    if (rc.getDirtCarrying() == 0) {
+                        rc.digDirt(dir);
+                        return;
+                    } else {
+                        rc.depositDirt(Direction.CENTER);
+                        return;
+                    }
+
+                }
+
             }
         }
 
@@ -459,6 +573,28 @@ public class utils {
         return false;
     }
 
+    public static boolean tryBuildDirectional(RobotController rc,RobotType robotType,Direction dir) throws GameActionException {
+        Direction rightDir = dir;
+        Direction leftDir = dir;
+        if (rc.canBuildRobot(robotType,dir)) {
+            rc.buildRobot(robotType,dir);
+            return true;
+        }
+        for (int i = 0;i < 4;i++) {
+            rightDir = rightDir.rotateRight();
+            leftDir = leftDir.rotateLeft();
+            if (rc.canBuildRobot(robotType,rightDir)) {
+                rc.buildRobot(robotType,rightDir);
+                return true;
+            }
+            if (rc.canBuildRobot(robotType,leftDir)) {
+                rc.buildRobot(robotType,leftDir);
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static MapLocation centroid(MapLocation[] locations) {
         int x = 0;
         int y = 0;
@@ -526,6 +662,8 @@ public class utils {
         return robot == null || robot.team == rc.getTeam().opponent() ||
                 robot.type == RobotType.MINER || robot.type == RobotType.COW || robot.type == RobotType.DELIVERY_DRONE || robot.type == RobotType.LANDSCAPER;
     }
+
+
 
 
 

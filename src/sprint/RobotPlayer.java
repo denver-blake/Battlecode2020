@@ -17,7 +17,7 @@ public class RobotPlayer {
         team = rc.getTeam();
         turnCount = 0;
 
-
+        //System.out.println("Max Soup produced: " + RobotType.REFINERY.maxSoupProduced);
         //System.out.println("I'm a " + rc.getType() + " and I just got created!");
         try {
             // Here, we've separated the controls into a different method for each RobotType.
@@ -50,7 +50,7 @@ public class RobotPlayer {
                 // You can add the missing ones or rewrite this into your own control structure.
                 System.out.println("I'm a " + rc.getType() + "! Location " + rc.getLocation());
                 r.run();
-                System.out.println("Done running");
+                //System.out.println("Done running");
 
                 // Clock.yield() makes the robot wait until the next turn, then it will perform this loop again
                 Clock.yield();
