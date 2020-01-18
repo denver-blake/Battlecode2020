@@ -20,6 +20,8 @@ public class utils {
     public static final int MINER_TAG = (RobotPlayer.team == Team.A) ? -398274 : 398274;
     public static final int SCOUT_DRONE_TAG = (RobotPlayer.team == Team.A) ? -432998 : 432998;
     public static final int TRANSPORT_MINERS_TAG = (RobotPlayer.team == Team.A) ? -554094 : 554094;
+    public static final int NO_REFINERY_TAG = (RobotPlayer.team == Team.A) ? -2222222 : 2222222;
+    public static final int MINER_SCOUT_TAG = (RobotPlayer.team == Team.A) ? -923422 : 923422;
 
     public static Direction intToDirection(int x) {
         switch(x) {
@@ -232,6 +234,48 @@ public class utils {
     public static int soupToMiners(int soup) {
         // 500 soup = 1 miner? linear for now
         return soup / 500;
+    }
+
+    public static MapLocation weightedSoupCentroid(RobotController rc) throws GameActionException {
+        int totalSoup = 0;
+        int totalX = 0, totalY = 0;
+        int rx = rc.getLocation().x, ry = rc.getLocation().y;
+
+        for(int i=rx-6;i<=rx+6;i++) {
+            for(int j=ry-6;j<=ry+6;j++) {
+                MapLocation tempLocation = new MapLocation(i, j);
+
+                if(rc.canSenseLocation(tempLocation)) {
+                    int soup = rc.senseSoup(tempLocation);
+
+                    totalSoup += soup;
+                    totalX += i * soup;
+                    totalY += j * soup;
+                }
+            }
+        }
+
+        return new MapLocation(totalX / totalSoup, totalY / totalSoup);
+    }
+
+    public static MapLocation unweightedSoupCentroid(RobotController rc) throws GameActionException {
+        int totalSoup = 0;
+        int totalX = 0, totalY = 0;
+        int rx = rc.getLocation().x, ry = rc.getLocation().y;
+
+        for(int i=rx-6;i<=rx+6;i++) {
+            for(int j=ry-6;j<=ry+6;j++) {
+                MapLocation tempLocation = new MapLocation(i, j);
+
+                if(rc.canSenseLocation(tempLocation) && rc.senseSoup(tempLocation) > 0) {
+                    totalSoup += 1;
+                    totalX += i;
+                    totalY += j;
+                }
+            }
+        }
+
+        return new MapLocation(totalX / totalSoup, totalY / totalSoup);
     }
 
     public static class Bug2Pathfinder {
