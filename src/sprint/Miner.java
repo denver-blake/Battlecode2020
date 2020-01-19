@@ -108,6 +108,7 @@ public class Miner implements Robot {
 //                    break;
 //            }
 //        }
+        
     }
 
     private void buildRefinery() throws GameActionException {
