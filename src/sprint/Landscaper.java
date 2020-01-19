@@ -36,6 +36,7 @@ public class Landscaper implements Robot {
     private int currentBlockChainRound;
     private int roundBuilt;
     private boolean startFortification;
+    private boolean gettingRushed;
 
 
     public Landscaper(RobotController rc) throws GameActionException {
@@ -48,13 +49,14 @@ public class Landscaper implements Robot {
         System.out.println("Round Built: " + roundBuilt);
 //        jobQueue.add(new GetRidOfWaterJob(Mode.GET_RID_OF_WATER,HQ,4,18));
 //        jobQueue.add(new ProtectDepositJob(Mode.PROTECT_DEPOSIT,HQ));
-
+        gettingRushed = false;
         pathfinder = null;
 
 
     }
 
     public void run() throws GameActionException {
+
 
 
         if(!jobQueue.isEmpty()) {
@@ -107,6 +109,11 @@ public class Landscaper implements Robot {
                 }
                 if (msg[2] == utils.START_FORTIFICATION) {
                     startFortification = true;
+                }
+                if (msg[2] == utils.GOT_RID_OF_WATER && jobQueue.peek().mode == Mode.GET_RID_OF_WATER) {
+                    if (((GetRidOfWaterJob) jobQueue.peek()).center.equals(new MapLocation(msg[3],msg[4]))) {
+                        jobQueue.remove();
+                    }
                 }
             }
         }
@@ -492,11 +499,70 @@ public class Landscaper implements Robot {
     }
 
 
-    public void attack() {
-        for (RobotInfo robotInfo : rc.senseNearbyRobots(-1,rc.getTeam().opponent())) {
+    public boolean antiRushDefense() throws GameActionException {
+        RobotInfo[] enemyRobots = rc.senseNearbyRobots(-1,rc.getTeam().opponent());
+        RobotInfo HQInfo = rc.canSenseLocation(HQ) ? rc.senseRobotAtLocation(HQ) : null;
+        MapLocation enemySchool = null;
+        MapLocation enemyNetGun = null;
+        MapLocation enemyCenter = null;
+        MapLocation enemyMiner = null;
+        List<MapLocation> enemyLandscapers = new ArrayList<MapLocation>();
 
+        if (HQInfo == null) {
+            utils.moveTowardsLandscaper(rc,HQ);
+            return false;
+        }
+        if (enemyRobots.length == 0) {
+            return true;
+        }
+        for (RobotInfo robot : enemyRobots) {
+            if (robot.type == RobotType.DESIGN_SCHOOL) {
+                enemySchool = robot.location;
+            } else if (robot.type == RobotType.NET_GUN) {
+                enemyNetGun = robot.location;
+            } else if (robot.type == RobotType.FULFILLMENT_CENTER) {
+                enemyCenter = robot.location;
+            } else if (robot.type == RobotType.MINER) {
+                enemyMiner = robot.location;
+            } else if (robot.type == RobotType.LANDSCAPER) {
+                enemyLandscapers.add(robot.location);
+            }
+        }
+
+        if (enemySchool != null && rc.getLocation().isAdjacentTo(enemySchool) && rc.getDirtCarrying() > 0) {
+            rc.depositDirt(rc.getLocation().directionTo(enemySchool));
+        } else if (enemyNetGun != null && rc.getLocation().isAdjacentTo(enemyNetGun) && rc.getDirtCarrying() > 0) {
+            rc.depositDirt(rc.getLocation().directionTo(enemyNetGun));
+        } else if (enemyCenter != null && rc.getLocation().isAdjacentTo(enemyCenter) && rc.getDirtCarrying() > 0) {
+            rc.depositDirt(rc.getLocation().directionTo(enemyCenter));
+        } else if (rc.getLocation().isAdjacentTo(HQ) && rc.getDirtCarrying() < 25 && HQInfo.dirtCarrying > 0) {
+            rc.digDirt(rc.getLocation().directionTo(HQ));
+        } else {
+            if (rc.getDirtCarrying() > 15) {
+                if (enemySchool != null) {
+                    utils.moveTowardsLandscaperNoWater(rc,enemySchool);
+                } else if (enemyNetGun != null) {
+                    utils.moveTowardsLandscaperNoWater(rc,enemyNetGun);
+                } else if (enemySchool != null) {
+                    utils.moveTowardsLandscaperNoWater(rc,enemySchool);
+                } else if (!rc.getLocation().isAdjacentTo(HQ)) {
+                    utils.moveTowardsLandscaperNoWater(rc,HQ);
+                } else {
+                    utils.tryDepositLowest(rc);
+                }
+            } else {
+                if (HQInfo.dirtCarrying > 15) {
+                    utils.moveTowardsLandscaperNoWater(rc,HQ);
+                } else  {
+                    utils.tryDigLowest(rc);
+                }
+            }
 
         }
+        return false;
+
+
+
     }
 
 

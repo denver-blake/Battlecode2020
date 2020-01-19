@@ -3,6 +3,7 @@ package sprint;
 import battlecode.common.*;
 
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Queue;
 
 public class HQ implements Robot {
@@ -35,7 +36,6 @@ public class HQ implements Robot {
         rc.submitTransaction(hqPosBlock, 5);
         netGun = new NetGun(rc);
     }
-
 
     public void run() throws GameActionException {
         netGun.run();
@@ -79,7 +79,6 @@ public class HQ implements Robot {
 
     private void buildMiner() throws GameActionException {
         if (rc.getTeamSoup() > 100 && utils.tryBuild(rc,RobotType.MINER)) {
-            System.out.println("Built fortify HQ Landscaper");
             int[] msg = {utils.BLOCKCHAIN_TAG,rc.getRoundNum(),utils.MINER_TAG,0,0,0,0};
             if (rc.canSubmitTransaction(msg,10)) {
                 rc.submitTransaction(msg,10);
@@ -91,7 +90,6 @@ public class HQ implements Robot {
 
     private void buildScout() throws GameActionException {
         if (rc.getTeamSoup() > 100 && utils.tryBuild(rc,RobotType.MINER)) {
-            System.out.println("Built fortify HQ Landscaper");
             int[] msg = {utils.BLOCKCHAIN_TAG,rc.getRoundNum(),utils.SCOUT_TAG,0,0,0,0};
             if (rc.canSubmitTransaction(msg,10)) {
                 rc.submitTransaction(msg,10);
@@ -111,6 +109,28 @@ public class HQ implements Robot {
             }
             buildQueue.remove();
         }
+    }
+
+    private MapLocation findDesignSchoolLocation() throws GameActionException {
+        MapLocation bestLocation = null;
+        int bestValue = 0;
+        for (Direction direction : Direction.cardinalDirections()) {
+            MapLocation location = rc.getLocation().add(direction).add(direction);
+            Direction dir = direction.opposite().rotateRight().rotateRight();
+            if (!rc.onTheMap(location)) continue;
+            int value = 0;
+            for (int i = 0;i < 5;i++) {
+                if (!rc.senseFlooding(location.add(dir)) && Math.abs(rc.senseElevation(location) - rc.senseElevation(location.add(dir))) <= 3) {
+                    value++;
+                }
+            }
+            if (value > bestValue) {
+                bestLocation = location;
+                bestValue = value;
+            }
+
+        }
+        return bestLocation;
     }
 
 
