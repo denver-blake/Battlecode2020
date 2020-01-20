@@ -5,7 +5,6 @@ import battlecode.common.*;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 
 public class DesignSchool implements Robot {
     enum UnitType {
@@ -31,6 +30,7 @@ public class DesignSchool implements Robot {
     private int currentBlockChainRound;
     private List<MapLocation> refineryLocations;
     private int built = 0;
+    private boolean refineryBuilt;
     
     public DesignSchool(RobotController rc) throws GameActionException {
         this.rc = rc;
@@ -40,6 +40,7 @@ public class DesignSchool implements Robot {
         currentBlockChainRound = 1;
         buildQueue.add(new Unit(UnitType.PROTECT_DEPOSIT,hqLocation.x,hqLocation.y));
         buildQueue.add(new Unit(UnitType.PROTECT_DEPOSIT,hqLocation.x,hqLocation.y));
+        refineryBuilt = false;
 
 
     }
@@ -142,6 +143,31 @@ public class DesignSchool implements Robot {
 //
 
 
+        dir = rc.getLocation().directionTo(hqLocation);
+        if (rc.onTheMap(hqLocation.add(dir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(dir).x,hqLocation.add(dir).y));
+        }
+        rightDir = dir.rotateRight();
+        leftDir = dir.rotateLeft();
+        if (rc.onTheMap(hqLocation.add(rightDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(rightDir).x,hqLocation.add(rightDir).y));
+        }
+        if (rc.onTheMap(hqLocation.add(leftDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(leftDir).x,hqLocation.add(leftDir).y));
+        }
+        rightDir = rightDir.rotateRight();
+        leftDir = leftDir.rotateLeft();
+        if (rc.onTheMap(hqLocation.add(rightDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(rightDir).x,hqLocation.add(rightDir).y));
+        }
+        if (rc.onTheMap(hqLocation.add(leftDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(leftDir).x,hqLocation.add(leftDir).y));
+        }
+
+
+
+
+
 
         dir = rc.getLocation().directionTo(hqLocation);
         leftDir = dir.rotateLeft().rotateLeft();
@@ -172,26 +198,18 @@ public class DesignSchool implements Robot {
             buildQueue.add(new Unit(UnitType.FORTIFY_HQ,rightLoc.add(rightDir).x,rightLoc.add(rightDir).y));
         }
 
+
+
+
         dir = rc.getLocation().directionTo(hqLocation);
-        if (rc.onTheMap(hqLocation.add(dir))) {
-            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(dir).x,hqLocation.add(dir).y));
-        }
+
         rightDir = dir.rotateRight();
         leftDir = dir.rotateLeft();
-        if (rc.onTheMap(hqLocation.add(rightDir))) {
-            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(rightDir).x,hqLocation.add(rightDir).y));
-        }
-        if (rc.onTheMap(hqLocation.add(leftDir))) {
-            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(leftDir).x,hqLocation.add(leftDir).y));
-        }
+
+
         rightDir = rightDir.rotateRight();
         leftDir = leftDir.rotateLeft();
-        if (rc.onTheMap(hqLocation.add(rightDir))) {
-            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(rightDir).x,hqLocation.add(rightDir).y));
-        }
-        if (rc.onTheMap(hqLocation.add(leftDir))) {
-            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(leftDir).x,hqLocation.add(leftDir).y));
-        }
+
         rightDir = rightDir.rotateRight();
         leftDir = leftDir.rotateLeft();
         if (rc.onTheMap(hqLocation.add(rightDir))) {
@@ -217,7 +235,7 @@ public class DesignSchool implements Robot {
 
     private void buildFortifyHQ() throws GameActionException {
         MapLocation loc = new MapLocation(buildQueue.peek().param1,buildQueue.peek().param2);
-        if (rc.getTeamSoup() > 200 && utils.tryBuildDirectional(rc,RobotType.LANDSCAPER,rc.getLocation().directionTo(loc))) {
+        if (rc.getTeamSoup() > 160 && (refineryBuilt || rc.getTeamSoup() > 300) && utils.tryBuildDirectional(rc,RobotType.LANDSCAPER,rc.getLocation().directionTo(loc))) {
             System.out.println("Built fortify HQ Landscaper");
             int[] msg = {utils.BLOCKCHAIN_TAG,rc.getRoundNum(),utils.LANDSCAPER_FORTIFY_CASTLE_TAG,loc.x,loc.y,0,0};
             if (rc.canSubmitTransaction(msg,10)) {
@@ -229,9 +247,9 @@ public class DesignSchool implements Robot {
     }
 
     private void buildProtectDeposit() throws GameActionException {
-        if (rc.getTeamSoup() > 200 && utils.tryBuild(rc,RobotType.LANDSCAPER)) {
+        if (rc.getTeamSoup() > 160 && utils.tryBuild(rc,RobotType.LANDSCAPER)) {
             System.out.println("Built Protect Deposit Landscaper at: " + (new MapLocation(buildQueue.peek().param1,buildQueue.peek().param2)) );
-            int[] msg = {utils.BLOCKCHAIN_TAG,rc.getRoundNum(),utils.LANDSCAPER_PROTECT_DEPOSIT_TAG,buildQueue.peek().param1,buildQueue.peek().param2,0,0};
+            int[] msg = {utils.BLOCKCHAIN_TAG,rc.getRoundNum(),utils.LANDSCAPER_PROTECT_BASE_TAG,buildQueue.peek().param1,buildQueue.peek().param2,0,0};
             if (rc.canSubmitTransaction(msg,10)) {
                 rc.submitTransaction(msg,10);
                 System.out.println("SUBMITTED JOB TRANSACTION");

@@ -78,7 +78,10 @@ public class NetGun implements Robot {
 
             }
         }
+        System.out.println("BEST VALUE: "  + bestValue);
+
         if (bestValue > -1 && rc.canShootUnit(bestTarget.ID)) {
+            rc.setIndicatorDot(bestTarget.location,255,255,255);
             rc.shootUnit(bestTarget.ID);
         }
     }

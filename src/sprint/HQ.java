@@ -17,17 +17,12 @@ public class HQ implements Robot {
     private class Unit {
         UnitType unitType;
 
-        int[] transaction;
-
-        public Unit(UnitType unitType, int[] transaction) {
-            this.unitType = unitType;
-            this.transaction = transaction;
-        }
 
         public Unit(UnitType unitType) {
             this.unitType = unitType;
-            this.transaction = null;
         }
+
+
     }
 
     private RobotController rc;
@@ -35,7 +30,7 @@ public class HQ implements Robot {
     int currentBlockChainRound;
     boolean built;
     NetGun netGun;
-
+    MapLocation localSoupCentroid;
 
     public HQ (RobotController rc) throws GameActionException {
         this.rc = rc;
@@ -47,23 +42,11 @@ public class HQ implements Robot {
         netGun = new NetGun(rc);
 
 
-        int localSoupMiners = utils.soupToMiners(utils.countLocalSoup(rc));
-        MapLocation localSoupCentroid = utils.weightedSoupCentroid(rc);
+        localSoupCentroid = utils.weightedSoupCentroid(rc);
 
-//        for(int i=0;i<localSoupMiners;i++) {
-//            MapLocation nextLocation = localSoupCentroid;
-//            for(int j = 0; j < i / 8; j++) {
-//                nextLocation = nextLocation.add(utils.intToDirection(i % 8));
-//            }
-//            int[] transaction = {utils.MINER_TAG, utils.NO_REFINERY_TAG, nextLocation.x, nextLocation.y, 0, 0, 0};
-//            buildQueue.add(new Unit(UnitType.MINER, transaction));
-//        }
-
-        for(int i=0;i<8;i++) {
-            Direction dir = utils.intToDirection(i);
-
-            int[] transaction = {utils.MINER_TAG, utils.MINER_SCOUT_TAG, dir.dx, dir.dy, 0, 0, 0};
-            buildQueue.add(new Unit(UnitType.MINER, transaction));
+        buildQueue.add(new Unit(UnitType.BUILDER));
+        for(int i=0;i<2;i++) {
+            buildQueue.add(new Unit(UnitType.MINER));
         }
 
     }
@@ -72,16 +55,10 @@ public class HQ implements Robot {
 
 
         netGun.run();
-        if (rc.getRoundNum() == 260) {
-            buildQueue.add(new Unit(UnitType.MINER, null));
 
-        }
 
         if(!buildQueue.isEmpty()) {
             switch (buildQueue.peek().unitType) {
-                case SCOUT:
-                    buildScout();
-                    break;
                 case MINER:
                     buildMiner();
                     break;
@@ -113,13 +90,9 @@ public class HQ implements Robot {
     }
 
     private void buildMiner() throws GameActionException {
-        if (rc.getTeamSoup() > 100 && utils.tryBuild(rc,RobotType.MINER)) {
+        if (rc.getTeamSoup() > 80 && utils.tryBuild(rc,RobotType.MINER)) {
 
-            int[] msg;
-            if(buildQueue.peek().transaction == null)
-                msg = new int[] {utils.BLOCKCHAIN_TAG,rc.getRoundNum(),utils.MINER_TAG,0,0,0,0};
-            else
-                msg = buildQueue.peek().transaction;
+            int[] msg = new int[] {utils.BLOCKCHAIN_TAG,rc.getRoundNum(),utils.MINER_TAG,localSoupCentroid.x,localSoupCentroid.y,0,0};
 
             if (rc.canSubmitTransaction(msg,10)) {
                 rc.submitTransaction(msg,10);
@@ -128,20 +101,12 @@ public class HQ implements Robot {
         }
     }
 
-    private void buildScout() throws GameActionException {
-        if (rc.getTeamSoup() > 100 && utils.tryBuild(rc,RobotType.MINER)) {
-            int[] msg = {utils.BLOCKCHAIN_TAG,rc.getRoundNum(),utils.SCOUT_TAG,0,0,0,0};
-            if (rc.canSubmitTransaction(msg,10)) {
-                rc.submitTransaction(msg,10);
-                System.out.println("SUBMITTED JOB TRANSACTION");
-            }
-            buildQueue.remove();
-        }
-    }
+
 
     private void buildBuilder() throws GameActionException {
-        if (rc.getTeamSoup() > 100 && utils.tryBuild(rc, RobotType.MINER)) {
-            int[] msg = {utils.BLOCKCHAIN_TAG, rc.getRoundNum(), utils.BUILDER_TAG, 0, 0, 0, 0};
+        if (rc.getTeamSoup() > 80 && utils.tryBuild(rc, RobotType.MINER)) {
+            MapLocation school = findDesignSchoolLocation();
+            int[] msg = {utils.BLOCKCHAIN_TAG, rc.getRoundNum(), utils.BUILDER_TAG, localSoupCentroid.x, localSoupCentroid.y, school.x, school.y};
             if (rc.canSubmitTransaction(msg, 10)) {
                 rc.submitTransaction(msg, 10);
                 System.out.println("SUBMITTED JOB TRANSACTION");

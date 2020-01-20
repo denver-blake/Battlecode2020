@@ -58,6 +58,9 @@ public class Landscaper implements Robot {
     }
 
     public void run() throws GameActionException {
+        if (utils.runFromDrone(rc)) {
+            return;
+        }
 
 
 
@@ -104,10 +107,16 @@ public class Landscaper implements Robot {
                     if (msg[2] == utils.LANDSCAPER_FORTIFY_CASTLE_TAG) {
                         System.out.println("Recieved fortify HQ Job at: " + (new MapLocation(msg[3],msg[4])));
                         jobQueue.add(new FortifyHQJob(Mode.FORTIFY_HQ,new MapLocation(msg[3],msg[4])));
-                    } else if (msg[2] == utils.LANDSCAPER_PROTECT_DEPOSIT_TAG) {
+                    } else if (msg[2] == utils.LANDSCAPER_PROTECT_BASE_TAG) {
                         System.out.println("Recieved Protect Deposit Job at:" + (new MapLocation(msg[3],msg[4])));
                         jobQueue.add(new GetRidOfWaterJob(Mode.GET_RID_OF_WATER,new MapLocation(msg[3],msg[4]),3,13));
                         jobQueue.add(new ProtectDepositJob(Mode.PROTECT_DEPOSIT,new MapLocation(msg[3],msg[4])));
+                    } else if (msg[2] == utils.LANDSCAPER_PROTECT_BASE_TAG) {
+                        System.out.println("Recieved Protect Deposit Job at:" + (new MapLocation(msg[3],msg[4])));
+                        jobQueue.add(new GetRidOfWaterJob(Mode.GET_RID_OF_WATER,new MapLocation(msg[3],msg[4]),3,13));
+                        jobQueue.add(new ProtectDepositJob(Mode.PROTECT_DEPOSIT,new MapLocation(msg[3],msg[4])));
+                    } else if (msg[2] == utils.CLEAR_DEPOSIT_TAG) {
+                        jobQueue.add(new GetRidOfWaterJob(Mode.GET_RID_OF_WATER,new MapLocation(msg[3],msg[4]),3,13));
                     }
                 } else if (msg[2] == utils.START_FORTIFICATION) {
                     startFortification = true;
@@ -190,14 +199,17 @@ public class Landscaper implements Robot {
                     if (rc.getLocation().distanceSquaredTo(HQ) <= 2) {
                         depositLowestWall();
                     } else if (rc.getLocation().distanceSquaredTo(HQ) <= 8) {
+                        depositLowestOuterWall();
                         depositLowestWall();
 
                     }
-                }  else if (doneWithFloodWall){
+                }
+                else {
                     if (rc.getLocation().distanceSquaredTo(HQ) <= 2) {
                         if (rc.canDepositDirt(Direction.CENTER)) rc.depositDirt(Direction.CENTER);
                     } else if (rc.getLocation().distanceSquaredTo(HQ) <= 8) {
                         depositLowestOuterWall();
+                        depositLowestWall2();
 
                     }
 
@@ -223,13 +235,34 @@ public class Landscaper implements Robot {
                 rc.depositDirt(bestDir);
             }
         }
-        public void depositLowestOuterWall() throws GameActionException {
+
+        public void depositLowestWall2() throws GameActionException {
             Direction bestDir = null;
             int bestHeight = Integer.MAX_VALUE;
             for (Direction dir: Direction.allDirections()) {
                 if (rc.canDepositDirt(dir)) {
                     MapLocation tempLoc = rc.adjacentLocation(dir);
-                    if (atOuterWallDistance(tempLoc)) {
+                    RobotInfo robot = rc.senseRobotAtLocation(tempLoc);
+                    if (tempLoc.distanceSquaredTo(HQ) <= 2 && !tempLoc.equals(HQ) && robot != null  && robot.type == RobotType.LANDSCAPER && robot.team == rc.getTeam()) {
+                        if (rc.senseElevation(tempLoc) < bestHeight) {
+                            bestDir = dir;
+                            bestHeight = rc.senseElevation(rc.adjacentLocation(dir));
+                        }
+                    }
+                }
+            }
+            if (bestDir != null) {
+                rc.depositDirt(bestDir);
+            }
+        }
+        public void depositLowestOuterWall() throws GameActionException {
+            Direction bestDir = null;
+            int bestHeight = Integer.MAX_VALUE;
+            int waterLevel = utils.getWaterLevel(rc.getRoundNum()) + 2;
+            for (Direction dir: Direction.allDirections()) {
+                if (rc.canDepositDirt(dir)) {
+                    MapLocation tempLoc = rc.adjacentLocation(dir);
+                    if (atOuterWallDistance(tempLoc) && rc.senseElevation(tempLoc) <= waterLevel) {
                         if (rc.senseElevation(tempLoc) < bestHeight) {
                             bestDir = dir;
                             bestHeight = rc.senseElevation(rc.adjacentLocation(dir));
@@ -295,9 +328,16 @@ public class Landscaper implements Robot {
 
              if (atProtectDistance(rc.getLocation())) {
                 int waterLevel = utils.getWaterLevel(rc.getRoundNum());
-                if (rc.getDirtCarrying() == 0 && rc.canDigDirt(locationToProtect.directionTo(rc.getLocation()))) {
+                if (rc.getDirtCarrying() == 0) {
                     System.out.println("Low on dirt, digging");
-                    rc.digDirt(locationToProtect.directionTo(rc.getLocation()));
+                    Direction dir = locationToProtect.directionTo(rc.getLocation());
+                    if (rc.canDigDirt(dir)) {
+                        rc.digDirt(dir);
+                    } else if (rc.canDigDirt(dir.rotateRight())) {
+                        rc.digDirt(dir.rotateRight());
+                    } else if (rc.canDigDirt(dir.rotateLeft())) {
+                        rc.digDirt(dir.rotateLeft());
+                    }
                 } else if (waterLevel  + 2 >= rc.senseElevation(rc.getLocation())) {
                     System.out.println("Water level: " + waterLevel + "Increasing elevation of flood wall");
                     rc.depositDirt(Direction.CENTER);
@@ -370,7 +410,8 @@ public class Landscaper implements Robot {
                     }
                 }
             } else if (rc.getLocation().distanceSquaredTo(locationToProtect) < 9){
-                 utils.moveAwayLandscaper(rc,locationToProtect);
+                 utils.moveTowardsLandscaper(rc, new MapLocation(rc.getMapWidth()/2,rc.getMapHeight()/2));
+
              } else {
                  utils.moveTowardsLandscaper(rc,locationToProtect);
              }
@@ -386,6 +427,7 @@ public class Landscaper implements Robot {
             for (int i = 0;i < 7;i++) {
                 dir = dir.rotateLeft();
                 MapLocation tempLoc = rc.getLocation().add(dir);
+                if (!rc.onTheMap(tempLoc)) continue;
                 if (atProtectDistance(tempLoc)) {
 
                     if (rc.senseElevation(tempLoc) != rc.senseElevation(rc.getLocation()) || rc.senseRobotAtLocation(tempLoc) != null) {
@@ -446,7 +488,7 @@ public class Landscaper implements Robot {
                     rc.depositDirt(Direction.CENTER);
                 } else {
                     Direction dir = center.directionTo(rc.getLocation());
-                    if (rc.getLocation().distanceSquaredTo(center) > radiusSquared) {
+                    if (atOuterWallDistance(rc.getLocation())) {
                         if (rc.canDigDirt(dir)) {
                             rc.digDirt(dir);
                             rc.setIndicatorDot(rc.adjacentLocation(dir), 255, 255, 255);
@@ -458,7 +500,7 @@ public class Landscaper implements Robot {
                             rc.setIndicatorDot(rc.adjacentLocation(dir.rotateLeft()), 255, 255, 255);
                         }
                     } else {
-                        utils.moveTowardsLandscaper(rc, rc.adjacentLocation(dir).add(dir));
+                        utils.moveTowardsLandscaper(rc, new MapLocation(rc.getMapWidth()/2,rc.getMapHeight()/2));
                     }
                 }
             }
@@ -553,6 +595,17 @@ public class Landscaper implements Robot {
             }
             System.out.println("Is there watter?? " + noWater);
             return noWater;
+        }
+
+        private boolean atOuterWallDistance(MapLocation loc) {
+            switch(HQ.distanceSquaredTo(loc)) {
+                case 9:
+                case 10:
+                case 13:
+                case 18:
+                    return true;
+            }
+            return false;
         }
 
 

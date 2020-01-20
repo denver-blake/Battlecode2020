@@ -11,10 +11,10 @@ public class utils {
     public static final int BLOCKCHAIN_TAG = (RobotPlayer.team == Team.A) ? -471247 : 471247;
     public static final int NEW_REFINERY_TAG = (RobotPlayer.team == Team.A) ? -24880: 24880;
     public static final int FINISHED_REFINERY_TAG = (RobotPlayer.team == Team.A) ? -578838 : 578838;
-    public static final int LANDSCAPER_PROTECT_DEPOSIT_TAG = (RobotPlayer.team == Team.A) ? -234987 : 234987;
+    public static final int LANDSCAPER_PROTECT_BASE_TAG = (RobotPlayer.team == Team.A) ? -234987 : 234987;
     public static final int LANDSCAPER_FORTIFY_CASTLE_TAG = (RobotPlayer.team == Team.A) ? -876323 : 876323;
     public static final int UNREACHABLE_DEPOSIT_TAG = (RobotPlayer.team == Team.A) ? -526723 : 526723;
-    public static  final int UNDERWATER_DEPOSIT_TAG = (RobotPlayer.team == Team.A) ? -982794 : 982794;
+    public static  final int CLEAR_DEPOSIT_TAG = (RobotPlayer.team == Team.A) ? -982794 : 982794;
     public static final int BUILDER_TAG = (RobotPlayer.team == Team.A) ? -113298 : 113298;
     public static final int SCOUT_TAG = (RobotPlayer.team == Team.A) ? -729234 : 729234;
     public static final int MINER_TAG = (RobotPlayer.team == Team.A) ? -398274 : 398274;
@@ -25,6 +25,7 @@ public class utils {
     public static final int NO_REFINERY_TAG = (RobotPlayer.team == Team.A) ? -2222222 : 2222222;
     public static final int MINER_SCOUT_TAG = (RobotPlayer.team == Team.A) ? -923422 : 923422;
     public static final int FINISHED_FLOOD_WALL = (RobotPlayer.team == Team.A) ? -889921 : 889921;
+    public static final int NEED_DRONE_TRANSPORT = (RobotPlayer.team == Team.A) ? -584321 : 584321;
 
     public static Direction intToDirection(int x) {
         switch(x) {
@@ -55,6 +56,8 @@ public class utils {
             }
         }
     }
+
+
 
     public static void moveTowardsLandscaper(RobotController rc,MapLocation destination) throws GameActionException {
         System.out.println("Moving towards: " + destination);
@@ -478,6 +481,11 @@ public class utils {
         }
 
         public void moveTowards() throws GameActionException {
+            if (rc.canMove(rc.getLocation().directionTo(destination)) && !rc.senseFlooding(rc.adjacentLocation(rc.getLocation().directionTo(destination)))) {
+                rc.move(rc.getLocation().directionTo(destination));
+                prevDirection =rc.getLocation().directionTo(destination);
+                return;
+            }
             if (rc.getCooldownTurns() >= 1) return;
             Direction dir;
 
@@ -536,7 +544,7 @@ public class utils {
                 if (line.get(i).equals(rc.getLocation())) {
                     dir = rc.getLocation().directionTo(line.get(i+1));
                     System.out.println(dir + " Towards goal");
-                    if (rc.canMove(dir)) {
+                    if (rc.canMove(dir) && !inRangeOfNetGun()) {
                         System.out.println(dir + " Actual");
                         prevDirection = dir;
                         rc.move(dir);
@@ -544,7 +552,7 @@ public class utils {
                     }
                     for (int j = 0;j < 8;j++) {
                         dir = dir.rotateLeft();
-                        if (rc.canMove(dir)) {
+                        if (rc.canMove(dir) && !inRangeOfNetGun()) {
                             prevDirection = dir;
                             System.out.println(dir + " Actual");
                             rc.move(dir);
@@ -564,6 +572,26 @@ public class utils {
             }
 
         }
+
+        private boolean inRangeOfNetGun() {
+            for (MapLocation location: getEnemyNetGunLocation(rc)) {
+                if (rc.getLocation().distanceSquaredTo(location) <= 15) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    public static List<MapLocation> getEnemyNetGunLocation(RobotController rc) {
+        List<MapLocation> enemyNetGunLocations = new ArrayList<MapLocation>();
+
+        for (RobotInfo robot: rc.senseNearbyRobots(-1,rc.getTeam().opponent())) {
+            if (robot.type == RobotType.NET_GUN || robot.type == RobotType.HQ) {
+                enemyNetGunLocations.add(robot.location);
+            }
+        }
+        return  enemyNetGunLocations;
     }
 
 
@@ -729,6 +757,69 @@ public class utils {
                 robot.type == RobotType.MINER || robot.type == RobotType.COW || robot.type == RobotType.DELIVERY_DRONE || robot.type == RobotType.LANDSCAPER;
     }
 
+
+    public static boolean runFromDrone(RobotController rc) throws GameActionException {
+
+        for (Direction dir: Direction.allDirections()) {
+            MapLocation loc = rc.adjacentLocation(dir);
+            if (rc.onTheMap(loc)) {
+                RobotInfo robot = rc.senseRobotAtLocation(loc);
+                if (robot != null && robot.team == rc.getTeam().opponent() && robot.type == RobotType.DELIVERY_DRONE && !robot.currentlyHoldingUnit) {
+                    if (rc.canMove(dir) && !rc.senseFlooding(rc.adjacentLocation(dir))) {
+                        rc.move(dir);
+                        return true;
+                    }
+                    else if (rc.canMove(dir.rotateRight()) && !rc.senseFlooding(rc.adjacentLocation(dir.rotateRight()))) {
+                        rc.move(dir.rotateRight());
+                        return true;
+                    }
+                    else if (rc.canMove(dir.rotateLeft()) && !rc.senseFlooding(rc.adjacentLocation(dir.rotateLeft()))) {
+                        rc.move(dir.rotateLeft());
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    public static boolean tryDropAlly(RobotController rc, Direction dir) throws GameActionException {
+
+        for (int i = 0;i < 8;i++) {
+
+            if (rc.onTheMap(rc.adjacentLocation(dir)) && rc.canDropUnit(dir) && !rc.senseFlooding(rc.adjacentLocation(dir))) {
+                rc.dropUnit(dir);
+                return true;
+            }
+            dir = dir.rotateRight();
+        }
+        return false;
+    }
+
+    public static boolean tryMineSoup(RobotController rc) throws GameActionException {
+        for (Direction dir : Direction.allDirections()) {
+            if (!rc.onTheMap(rc.adjacentLocation(dir))) continue;
+            if (rc.senseSoup(rc.adjacentLocation(dir)) > 0) {
+                rc.mineSoup(dir);
+                rc.setIndicatorDot(rc.adjacentLocation(dir),150,75,0);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean tryDepositSoup(RobotController rc) throws GameActionException {
+        for (Direction dir : Direction.allDirections()) {
+            if (!rc.onTheMap(rc.adjacentLocation(dir))) continue;
+            RobotInfo robot = rc.senseRobotAtLocation(rc.adjacentLocation(dir));
+            if (robot != null && robot.team == rc.getTeam() && (robot.type == RobotType.HQ || robot.type == RobotType.REFINERY)) {
+                rc.depositSoup(dir,rc.getSoupCarrying());
+                rc.setIndicatorDot(rc.adjacentLocation(dir),150,75,0);
+                return true;
+            }
+        }
+        return false;
+    }
 
 
 

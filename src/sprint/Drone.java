@@ -9,7 +9,7 @@ public class Drone implements Robot  {
 
     enum Mode {
         SCOUT,
-        TRANSPORT_MINERS
+        TRANSPORT
     }
     private class Job {
         Mode mode;
@@ -25,6 +25,7 @@ public class Drone implements Robot  {
     MapLocation HQLocation;
     int currentBlockChainRound;
     int roundBuilt;
+    utils.Bug2PathfinderDrone pathfinder;
 
     public Drone(RobotController rc) throws GameActionException {
         this.rc = rc;
@@ -34,16 +35,26 @@ public class Drone implements Robot  {
         roundBuilt = rc.getRoundNum()-1;
         jobQueue.add(new ScoutJob(Mode.SCOUT));
         System.out.println("Round Built: " + roundBuilt);
+        pathfinder = new utils.Bug2PathfinderDrone(rc, new MapLocation(rc.getMapWidth()/2,rc.getMapHeight()/2));
     }
 
     public void run() throws GameActionException {
         if(!jobQueue.isEmpty()) {
             jobQueue.peek().work();
+        } else {
+            defaultJob();
         }
         readBlockChain();
 
         System.out.println("BYTECODE: " + Clock.getBytecodeNum());
 
+    }
+
+    private void defaultJob() throws GameActionException {
+        if (rc.getLocation().distanceSquaredTo(HQLocation) <= 18) {
+            pathfinder.moveTowards();
+
+        }
     }
 
     private void readBlockChain() throws GameActionException {
@@ -57,6 +68,12 @@ public class Drone implements Robot  {
             if (msg[0] == utils.BLOCKCHAIN_TAG) {
                 if (msg[1] == roundBuilt) {
                     //Transaction tags to look for
+                }
+                if (msg[2] == utils.NEED_DRONE_TRANSPORT) {
+                    MapLocation start = new MapLocation(msg[3],msg[4]);
+                    MapLocation end = new MapLocation(msg[5],msg[6]);
+                    jobQueue.add(new TransportJob(Mode.TRANSPORT,start,end,msg[1]));
+
                 }
             }
         }
@@ -113,6 +130,8 @@ public class Drone implements Robot  {
             }
 
         }
+
+
         public void work() throws GameActionException {
             System.out.println("Pathing to " + locationsToSearch[locationIndex]);
             rc.setIndicatorLine(rc.getLocation(),locationsToSearch[locationIndex],255,0,0);
@@ -143,10 +162,49 @@ public class Drone implements Robot  {
 
     }
 
-    public class TransportMinersJob extends Job {
+    public class TransportJob extends Job {
 
-        public TransportMinersJob(Mode mode) {
+        MapLocation startLocation;
+        MapLocation endLocation;
+        utils.Bug2PathfinderDrone pathfinder;
+        int robotID;
+        public TransportJob(Mode mode,MapLocation startLocation,MapLocation endLocation,int robotID) {
             super(mode);
+            this.startLocation = startLocation;
+            this.endLocation = endLocation;
+            this.robotID = robotID;
+            pathfinder = new utils.Bug2PathfinderDrone(rc,startLocation);
+
+        }
+
+        public void work() throws GameActionException {
+            if (!rc.isReady()) return;
+
+            RobotInfo robot = rc.senseRobot(robotID);
+
+            if ( robot != null) {
+                if (robot.location.isAdjacentTo(rc.getLocation())) {
+                    rc.pickUpUnit(robotID);
+                    pathfinder = new utils.Bug2PathfinderDrone(rc,endLocation);
+                } else {
+                    utils.moveTowardsSimple(rc, robot.location);
+                }
+            } else if (rc.isCurrentlyHoldingUnit()) {
+                if (rc.getLocation().distanceSquaredTo(endLocation) == 0
+                ) {
+                    for (Direction dir: Direction.allDirections()) {
+                        if (rc.canMove(dir)) {
+                            rc.move(dir);
+                        }
+                    }
+                }
+                if (rc.getLocation().distanceSquaredTo(endLocation) <= 2 && utils.tryDropAlly(rc,rc.getLocation().directionTo(endLocation))) {
+                    jobQueue.remove();
+                }
+                pathfinder.moveTowards();
+            } else if (!rc.isCurrentlyHoldingUnit()) {
+                pathfinder.moveTowards();
+            }
         }
     }
 
