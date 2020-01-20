@@ -24,6 +24,7 @@ public class utils {
     public static final int GOT_RID_OF_WATER = (RobotPlayer.team == Team.A) ? -124322 : 124322;
     public static final int NO_REFINERY_TAG = (RobotPlayer.team == Team.A) ? -2222222 : 2222222;
     public static final int MINER_SCOUT_TAG = (RobotPlayer.team == Team.A) ? -923422 : 923422;
+    public static final int FINISHED_FLOOD_WALL = (RobotPlayer.team == Team.A) ? -889921 : 889921;
 
     public static Direction intToDirection(int x) {
         switch(x) {

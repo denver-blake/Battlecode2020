@@ -75,39 +75,43 @@ public class Miner implements Robot {
     }
 
     public void run() throws GameActionException {
+        if (rc.getRoundNum() > 500 && rc.getLocation().distanceSquaredTo(hqLocation) < 9) rc.disintegrate();
         if (built) rc.disintegrate();
-
-        if (rc.canBuildRobot(RobotType.DESIGN_SCHOOL,Direction.NORTH))  {
-            rc.buildRobot(RobotType.DESIGN_SCHOOL,Direction.NORTH);
-            built = true;
+        if (roundBuilt > 250) {
+            if (rc.canBuildRobot(RobotType.DESIGN_SCHOOL,Direction.NORTH) )  {
+                rc.buildRobot(RobotType.DESIGN_SCHOOL,Direction.NORTH);
+                built = true;
+            }
+            return;
         }
-        turn++;
-//        System.out.println("running");
-//        if(!jobQueue.isEmpty()) {
-//            switch (jobQueue.peek().mode) {
-//                case BUILD_REFINERY:
-//                    buildRefinery();
-//                    break;
-//                case SCOUT_DEPOSIT:
-//                    scoutDeposit();
-//                    break;
-//                case MINE_DEPOSIT:
-//                    mineDeposit();
-//                    break;
-//                case BUILD_SCHOOL:
-//                    buildSchool();
-//                    break;
-//                case BUILD_CENTER:
-//                    buildCenter();
-//                    break;
-//                case BUILD_DEFENSIVE_GUN:
-//                    break;
-//                case BUILD_VAPORATOR:
-//                    break;
-//                default:
-//                    break;
-//            }
-//        }
+
+//        turn++;
+        //System.out.println("running");
+        if(!jobQueue.isEmpty()) {
+            switch (jobQueue.peek().mode) {
+                case BUILD_REFINERY:
+                    buildRefinery();
+                    break;
+                case SCOUT_DEPOSIT:
+                    scoutDeposit();
+                    break;
+                case MINE_DEPOSIT:
+                    mineDeposit();
+                    break;
+                case BUILD_SCHOOL:
+                    buildSchool();
+                    break;
+                case BUILD_CENTER:
+                    buildCenter();
+                    break;
+                case BUILD_DEFENSIVE_GUN:
+                    break;
+                case BUILD_VAPORATOR:
+                    break;
+                default:
+                    break;
+            }
+        }
         
     }
 

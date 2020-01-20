@@ -84,13 +84,13 @@ public class DesignSchool implements Robot {
             int[] msg = transaction.getMessage();
             if (msg.length != 7) continue;
             if (msg[0] == utils.BLOCKCHAIN_TAG) {
-                if (msg[1] == utils.NEW_REFINERY_TAG) {
-                    MapLocation loc = new MapLocation(msg[2],msg[3]);
-                    if (!refineryLocations.contains(loc)) {
-                        refineryLocations.add(loc);
-                        buildQueue.addFirst(new Unit(UnitType.PROTECT_DEPOSIT,loc.x,loc.y));
-                    }
-                }
+//                if (msg[1] == utils.NEW_REFINERY_TAG) {
+//                    MapLocation loc = new MapLocation(msg[2],msg[3]);
+//                    if (!refineryLocations.contains(loc)) {
+//                        refineryLocations.add(loc);
+//                        buildQueue.addFirst(new Unit(UnitType.PROTECT_DEPOSIT,loc.x,loc.y));
+//                    }
+//                }
                 if (msg[2] == utils.GOT_RID_OF_WATER) {
                     if (msg[3] == hqLocation.x && msg[4] == hqLocation.y) {
                         createFortifyHQBuildQueue();
@@ -112,68 +112,34 @@ public class DesignSchool implements Robot {
         MapLocation rightLoc;
         MapLocation leftLoc;
 
-//        dir = rc.getLocation().directionTo(hqLocation);
-//        leftLoc = hqLocation.add(dir.rotateLeft());
-//        rightLoc = hqLocation.add(dir.rotateRight());
-//        leftDir = dir;
-//        rightDir = dir;
-//        if (rc.onTheMap(leftLoc.add(leftDir))) {
-//            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,leftLoc.add(leftDir).x,leftLoc.add(leftDir).y));
-//        }
-//        if (rc.onTheMap(rightLoc.add(rightDir))) {
-//            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,rightLoc.add(rightDir).x,rightLoc.add(rightDir).y));
-//        }
-//        leftDir = leftDir.rotateLeft();
-//        rightDir = rightDir.rotateRight();
-//        if (rc.onTheMap(leftLoc.add(leftDir))) {
-//            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,leftLoc.add(leftDir).x,leftLoc.add(leftDir).y));
-//        }
-//        if (rc.onTheMap(rightLoc.add(rightDir))) {
-//            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,rightLoc.add(rightDir).x,rightLoc.add(rightDir).y));
-//        }
-//        leftDir = leftDir.rotateLeft();
-//        rightDir = rightDir.rotateRight();
-//        if (rc.onTheMap(leftLoc.add(leftDir))) {
-//            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,leftLoc.add(leftDir).x,leftLoc.add(leftDir).y));
-//        }
-//        if (rc.onTheMap(rightLoc.add(rightDir))) {
-//            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,rightLoc.add(rightDir).x,rightLoc.add(rightDir).y));
-//        }
+        dir = rc.getLocation().directionTo(hqLocation);
+        leftLoc = hqLocation.add(dir.rotateLeft());
+        rightLoc = hqLocation.add(dir.rotateRight());
+        leftDir = dir;
+        rightDir = dir;
+        if (rc.onTheMap(leftLoc.add(leftDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,leftLoc.add(leftDir).x,leftLoc.add(leftDir).y));
+        }
+        if (rc.onTheMap(rightLoc.add(rightDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,rightLoc.add(rightDir).x,rightLoc.add(rightDir).y));
+        }
+        leftDir = leftDir.rotateLeft();
+        rightDir = rightDir.rotateRight();
+        if (rc.onTheMap(leftLoc.add(leftDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,leftLoc.add(leftDir).x,leftLoc.add(leftDir).y));
+        }
+        if (rc.onTheMap(rightLoc.add(rightDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,rightLoc.add(rightDir).x,rightLoc.add(rightDir).y));
+        }
+        leftDir = leftDir.rotateLeft();
+        rightDir = rightDir.rotateRight();
+        if (rc.onTheMap(leftLoc.add(leftDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,leftLoc.add(leftDir).x,leftLoc.add(leftDir).y));
+        }
+        if (rc.onTheMap(rightLoc.add(rightDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,rightLoc.add(rightDir).x,rightLoc.add(rightDir).y));
+        }
 //
-
-
-         dir = rc.getLocation().directionTo(hqLocation);
-        if (rc.onTheMap(hqLocation.add(dir))) {
-            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(dir).x,hqLocation.add(dir).y));
-        }
-        rightDir = dir.rotateRight();
-        leftDir = dir.rotateLeft();
-        if (rc.onTheMap(hqLocation.add(rightDir))) {
-            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(rightDir).x,hqLocation.add(rightDir).y));
-        }
-        if (rc.onTheMap(hqLocation.add(leftDir))) {
-            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(leftDir).x,hqLocation.add(leftDir).y));
-        }
-        rightDir = rightDir.rotateRight();
-        leftDir = leftDir.rotateLeft();
-        if (rc.onTheMap(hqLocation.add(rightDir))) {
-            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(rightDir).x,hqLocation.add(rightDir).y));
-        }
-        if (rc.onTheMap(hqLocation.add(leftDir))) {
-            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(leftDir).x,hqLocation.add(leftDir).y));
-        }
-        rightDir = rightDir.rotateRight();
-        leftDir = leftDir.rotateLeft();
-        if (rc.onTheMap(hqLocation.add(rightDir))) {
-            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(rightDir).x,hqLocation.add(rightDir).y));
-        }
-        if (rc.onTheMap(hqLocation.add(leftDir))) {
-            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(leftDir).x,hqLocation.add(leftDir).y));
-        }
-        dir = dir.opposite();
-        if (rc.onTheMap(hqLocation.add(dir))) {
-            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(dir).x,hqLocation.add(dir).y));
-        }
 
 
 
@@ -206,6 +172,38 @@ public class DesignSchool implements Robot {
             buildQueue.add(new Unit(UnitType.FORTIFY_HQ,rightLoc.add(rightDir).x,rightLoc.add(rightDir).y));
         }
 
+        dir = rc.getLocation().directionTo(hqLocation);
+        if (rc.onTheMap(hqLocation.add(dir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(dir).x,hqLocation.add(dir).y));
+        }
+        rightDir = dir.rotateRight();
+        leftDir = dir.rotateLeft();
+        if (rc.onTheMap(hqLocation.add(rightDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(rightDir).x,hqLocation.add(rightDir).y));
+        }
+        if (rc.onTheMap(hqLocation.add(leftDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(leftDir).x,hqLocation.add(leftDir).y));
+        }
+        rightDir = rightDir.rotateRight();
+        leftDir = leftDir.rotateLeft();
+        if (rc.onTheMap(hqLocation.add(rightDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(rightDir).x,hqLocation.add(rightDir).y));
+        }
+        if (rc.onTheMap(hqLocation.add(leftDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(leftDir).x,hqLocation.add(leftDir).y));
+        }
+        rightDir = rightDir.rotateRight();
+        leftDir = leftDir.rotateLeft();
+        if (rc.onTheMap(hqLocation.add(rightDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(rightDir).x,hqLocation.add(rightDir).y));
+        }
+        if (rc.onTheMap(hqLocation.add(leftDir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(leftDir).x,hqLocation.add(leftDir).y));
+        }
+        dir = dir.opposite();
+        if (rc.onTheMap(hqLocation.add(dir))) {
+            buildQueue.add(new Unit(UnitType.FORTIFY_HQ,hqLocation.add(dir).x,hqLocation.add(dir).y));
+        }
 
         buildQueue.add(new Unit(UnitType.DISINTEGRATE,0,0));
 

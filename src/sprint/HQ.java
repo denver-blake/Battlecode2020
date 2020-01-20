@@ -50,14 +50,14 @@ public class HQ implements Robot {
         int localSoupMiners = utils.soupToMiners(utils.countLocalSoup(rc));
         MapLocation localSoupCentroid = utils.weightedSoupCentroid(rc);
 
-        for(int i=0;i<localSoupMiners;i++) {
-            MapLocation nextLocation = localSoupCentroid;
-            for(int j = 0; j < i / 8; j++) {
-                nextLocation = nextLocation.add(utils.intToDirection(i % 8));
-            }
-            int[] transaction = {utils.MINER_TAG, utils.NO_REFINERY_TAG, nextLocation.x, nextLocation.y, 0, 0, 0};
-            buildQueue.add(new Unit(UnitType.MINER, transaction));
-        }
+//        for(int i=0;i<localSoupMiners;i++) {
+//            MapLocation nextLocation = localSoupCentroid;
+//            for(int j = 0; j < i / 8; j++) {
+//                nextLocation = nextLocation.add(utils.intToDirection(i % 8));
+//            }
+//            int[] transaction = {utils.MINER_TAG, utils.NO_REFINERY_TAG, nextLocation.x, nextLocation.y, 0, 0, 0};
+//            buildQueue.add(new Unit(UnitType.MINER, transaction));
+//        }
 
         for(int i=0;i<8;i++) {
             Direction dir = utils.intToDirection(i);
@@ -70,8 +70,12 @@ public class HQ implements Robot {
 
     public void run() throws GameActionException {
 
-        netGun.run();
 
+        netGun.run();
+        if (rc.getRoundNum() == 260) {
+            buildQueue.add(new Unit(UnitType.MINER, null));
+
+        }
 
         if(!buildQueue.isEmpty()) {
             switch (buildQueue.peek().unitType) {
